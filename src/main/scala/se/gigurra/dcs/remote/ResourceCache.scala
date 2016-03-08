@@ -26,13 +26,13 @@ case class ResourceCache(_maxSizeMb: Int) {
     ageQue.dequeueAll(_.id == id)
   }
 
-  def size: Long = synchronized(_size)
-  def approxSizeOf(data: String): Long = synchronized (data.size.toLong * 120L / 100L)
-  def isEmpty: Boolean = synchronized(store.isEmpty)
-  def nonEmpty: Boolean = synchronized (!isEmpty)
-  def time: Double = System.nanoTime / 1e9
+  private def size: Long = _size
+  private def approxSizeOf(data: String): Long = data.size.toLong * 120L / 100L
+  private def isEmpty: Boolean = store.isEmpty
+  private def nonEmpty: Boolean = !isEmpty
+  private def time: Double = System.nanoTime / 1e9
 
-  private def deleteOldest(): Unit = synchronized {
+  private def deleteOldest(): Unit = {
     val item = ageQue.dequeue()
     store.remove(item.id)
   }
