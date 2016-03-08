@@ -16,7 +16,9 @@ object DcsRemote {
 
     logger.info(s"Starting DCS Remote REST proxy with config:\n ${JSON.write(config)}")
 
-    val service = ExceptionFilter[Exception]() andThen new RestService(config)
+    val cache = new ResourceCache(config.cache_size_mb)
+    val clients = DcsClient.createClients(config)
+    val service = ExceptionFilter[Exception]() andThen new RestService(config, cache, clients)
     val server = ServerBuilder()
       // .tls(certificatePath = "", keyPath = "")
       .codec(Http())
