@@ -84,6 +84,7 @@ class DcsClientActor(address: InetSocketAddress) extends Actor with Logging {
   }
 
   def handleConnected() {
+    logger.info(s"DCS Client connected")
     status = CONNECTED
     buffer.clear()
     listeners.foreach { _.onConnect() }
@@ -123,6 +124,7 @@ class DcsClientActor(address: InetSocketAddress) extends Actor with Logging {
   }
 
   def handleDisconnected() {
+    logger.info(s"DCS Client disconnected")
     status = DISCONNECTED
     listeners.foreach { _.onDisconnect() }
     reconnect()

@@ -7,10 +7,10 @@ local function addScriptDir(path)
     package.path = package.path .. ";" .. path .. "/?.lua" .. ";" .. path .. "/?.dll"
 end
 
-local LFS = require('lfs')
-addScriptDir(os.getenv("HOME") .. "/Saved Games/DCS/Scripts")
-addScriptDir(LFS.currentdir() .. "/Scripts")
-addScriptDir(LFS.currentdir() .. "/LuaSocket")
+addScriptDir(lfs.writedir() .. "/Scripts")
+addScriptDir(lfs.writedir() .. "/LuaSocket")
+addScriptDir(lfs.currentdir() .. "/Scripts")
+addScriptDir(lfs.currentdir() .. "/LuaSocket")
 
 ---------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------
@@ -27,8 +27,8 @@ local NETUTILS = require 'dcs_remote_net_utils'
 ----------------------------------------------------  DCS_REMOTE ----------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------
 
-local logFile = io.open(LFS.writedir().."/Logs/dcs_remote.log", "w")
-local serverSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(12340)))
+local logFile = io.open(lfs.writedir().."/Logs/dcs_remote.log", "w")
+local serverSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(13465)))
 local clients = {}
 
 ---------------------------------------------------------------------------------------------------------------------
@@ -162,4 +162,6 @@ function LuaExportStop()
     for client in pairs(shallowcopy(clients)) do
         disconnect(client)
     end
+
+	serverSocket:close()
 end

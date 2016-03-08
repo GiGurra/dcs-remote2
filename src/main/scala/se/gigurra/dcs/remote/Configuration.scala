@@ -11,7 +11,7 @@ case class LuaEnvironmentMap(source: SourceData = Map.empty)
 
 object LuaEnvironmentMap extends Schema[LuaEnvironmentMap] {
   val name  = required[String]("name", default = "export")
-  val port  = required[Int]("port", default = 12341)
+  val port  = required[Int]("port", default = 13465)
 }
 
 case class Configuration(source: SourceData = Map.empty)
