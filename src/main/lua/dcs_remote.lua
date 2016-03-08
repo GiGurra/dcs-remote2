@@ -28,7 +28,7 @@ local NETUTILS = require 'dcs_remote_net_utils'
 ---------------------------------------------------------------------------------------------------------------------
 
 local logFile = io.open(LFS.writedir().."/Logs/dcs_remote.log", "w")
-local serverSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(13465)))
+local serverSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(12340)))
 local clients = {}
 
 ---------------------------------------------------------------------------------------------------------------------

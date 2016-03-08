@@ -14,7 +14,7 @@ object LuaEnvironmentMap extends Schema[LuaEnvironmentMap] {
   val port  = required[Int]("port", default = 12341)
 }
 
-case class Configuration(source: SourceData)
+case class Configuration(source: SourceData = Map.empty)
   extends Parsed[Configuration.type] {
   val rest_port     = parse(schema.rest_port)
   val cache_size_mb = parse(schema.cache_size_mb)
@@ -28,6 +28,6 @@ object Configuration extends Schema[Configuration] {
 
   def readFromFile(): Configuration = {
     // TODO: implement file read
-    Configuration(Map.empty)
+    Configuration()
   }
 }
