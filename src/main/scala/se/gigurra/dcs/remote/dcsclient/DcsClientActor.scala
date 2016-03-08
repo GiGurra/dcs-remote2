@@ -18,9 +18,9 @@ object DcsClientActor extends Logging {
   case class RegisterListener(listener: DcsRemoteListener)
   case class Request(
     script: String,
-    onComplete: String => Unit = reply => logger.info (s"request returned: $reply"),
-    onTimeout: String => Unit = id => logger.info(s"request $id timedOut"),
-    timeOut: FiniteDuration = 2 seconds,
+    onComplete: String => Unit,
+    onTimeout: String => Unit,
+    timeOut: FiniteDuration,
     id: String = UUID.randomUUID().toString) {}
   case class RequestTimedOut(requesId: String)
   case object GetStatus
