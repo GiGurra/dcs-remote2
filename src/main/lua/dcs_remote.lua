@@ -107,8 +107,12 @@ local function handleIncoming(client)
             local status, pcallErr = pcall(function ()
 
                 local result, errRes = runnable()
-                if result then
-                    send(client, result, requestId)
+                if not errRes then
+                    if result then
+                        send(client, result, requestId)
+                    else
+                        send(client, { message = "No Content" }, requestId)
+                    end
                 else
                     send(client, { err = errRes }, requestId)
                     log_err("failed to execute script: " .. script)
