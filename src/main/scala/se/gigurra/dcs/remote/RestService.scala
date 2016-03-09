@@ -14,23 +14,24 @@ case class RestService(config: Configuration,
 
   override def apply(request: Request) = ServiceExceptionFilter {
     request.method -> Path(request.path) match {
-      case Method.Get     -> Root / name / luaMethod  => handleGet(request, name, luaMethod)
-      case Method.Delete  -> Root / name / luaMethod  => handleDelete(request, name, luaMethod)
-      case Method.Post    -> Root / name              => handlePost(request, name)
-      case _                                          => NotFound("No such route")
+      case Method.Get     -> Root / env / resource   => handleGet(request, env, resource)
+      case Method.Delete  -> Root / env / resource   => handleDelete(request, env, resource)
+      case Method.Post    -> Root / env              => handlePost(request, env)
+      case Method.Put     -> Root / env / resource   => handlePut(request, env, resource)
+      case _                                         => NotFound("No such route")
     }
   }
 
   private def handleGet(request: Request,
-                        name: String,
-                        luaMethod: String): Future[Response] = {
+                        env: String,
+                        resource: String): Future[Response] = {
 
     val maxResourceAgeSeconds = request.params.get(MAX_CACHE_AGE_KEY).map(_.toDouble / 1000.0).getOrElse(0.04)
-    val id = idOf(name, luaMethod)
+    val id = idOf(env, resource)
     cache.get(id, maxResourceAgeSeconds) match {
-      case Some(resource) => Future.value(resource.toResponse)
+      case Some(data) => Future.value(data.toResponse)
       case None =>
-        clientOf(name).get(luaMethod).map { data =>
+        clientOf(env).get(resource).map { data =>
           cache.put(id, data)
           data.toResponse
         }
@@ -38,24 +39,32 @@ case class RestService(config: Configuration,
   }
 
   private def handleDelete(request: Request,
-                           name: String,
-                           luaMethod: String): Future[Response] = {
-    val id = idOf(name, luaMethod)
+                           env: String,
+                           resource: String): Future[Response] = {
+    val id = idOf(env, resource)
     cache.delete(id)
-    clientOf(name).delete(luaMethod).map (_ =>  Responses.ok(s"Resource $name/$luaMethod deleted"))
+    clientOf(env).delete(resource).map (_ =>  Responses.ok(s"Resource $env/$resource deleted"))
   }
 
   private def handlePost(request: Request,
-                         name: String): Future[Response] = {
-    clientOf(name).post(request.contentString).map (_ => Responses.ok(s"Resource added"))
+                         env: String): Future[Response] = {
+    clientOf(env).post(request.contentString).map (_ => Responses.ok(s"Resource added"))
   }
 
-  private def idOf(name: String, luaMethod: String): String = {
-    s"$name/$luaMethod"
+  private def handlePut(request: Request,
+                        env: String,
+                        resource: String): Future[Response] = {
+    val id = idOf(env, resource)
+    cache.put(id, request.contentString)
+    Responses.Ok(s"Resource stored in cache")
   }
 
-  private def clientOf(name: String): DcsClient = {
-    clients.getOrElse(name, throw notFound(s"No dcs client configured to environment named $name. Check your DcsRemote configuration"))
+  private def idOf(env: String, resource: String): String = {
+    s"$env/$resource"
+  }
+
+  private def clientOf(env: String): DcsClient = {
+    clients.getOrElse(env, throw notFound(s"No dcs client configured to environment named $env. Check your DcsRemote configuration"))
   }
 
   implicit class RichJsonString(val str: String) {
