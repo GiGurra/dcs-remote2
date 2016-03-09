@@ -59,6 +59,11 @@ case class DcsClient(name: String, port: Int) {
   }
 
   private def quote(s: String): String = '"' + s + '"'
+
+  private def paramValue(s: String): String = {
+    if (s.contains)
+    Try(s)
+  }
 }
 
 object DcsClient {

@@ -111,7 +111,7 @@ local function handleIncoming(client)
                     if result then
                         send(client, result, requestId)
                     else
-                        send(client, { message = "No Content" }, requestId)
+                        send(client, { message = "No Content", source = script }, requestId)
                     end
                 else
                     send(client, { err = errRes }, requestId)
