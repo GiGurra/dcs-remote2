@@ -26,7 +26,7 @@ case class DcsClient(name: String, port: Int) {
     clientActor ! Request(
       s"return $luaMethod{${methodParameters.map(p => s"${p._1}=${quote(p._2)}").mkString(",")}}",
       msg => p.complete(Try(msg)),
-      id => p.failure(new TimeoutException(s"Get-Request to DCS/$name timed out(id=$id)")),
+      id => p.failure(new TimeoutException(s"Get-Request to DCS/$name/$luaMethod timed out(id=$id)")),
       timeout)
 
     TwitterFutures.scalaToTwitterFuture(p.future)
