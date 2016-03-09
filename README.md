@@ -39,7 +39,7 @@
     DELETE http://127.0.0.1:12340/export/change_hud_color
 
 
-##### Store JSON
+##### Store random stuff
 
     PUT http://127.0.0.1:12340/export/junk
     {
@@ -48,7 +48,7 @@
     }
 
 
-##### GET stored JSON back
+##### GET random stored stuff back!
 
     http://127.0.0.1:12340/export/junk?max_cached_age=30000
 
