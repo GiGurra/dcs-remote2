@@ -10,12 +10,12 @@
 * Use any browser or tool (e.g. postman) to test/experiment before building your mod
 
 
-##### Instructions
+### Instructions
 
 * Put the lua scripts from this repository into your .../Saved Games/DCS/Scripts/ folder
 * Run dcs-remote2.jar (you will see a system tray icon if it starts properly)
 
-###### Advanced
+####### Advanced
 
 * Put the lua scripts into more DCS environment directories
    * Configured for export environment by default
@@ -24,6 +24,8 @@
    * export environment configured by default
    * See application startup console output for format
 
+
+### Examples
 
 ##### Getting data from an environment
 
