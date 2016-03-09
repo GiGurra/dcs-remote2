@@ -51,7 +51,7 @@
     DELETE http://127.0.0.1:12340/export/change_hud_color
 
 
-##### Store random stuff
+##### Store random stuff in cache
 
     PUT http://127.0.0.1:12340/export/junk
     {
