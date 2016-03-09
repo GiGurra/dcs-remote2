@@ -28,7 +28,7 @@ case class RestService(config: Configuration,
     val maxResourceAgeSeconds = request.params.get(MAX_CACHE_AGE_KEY).map(_.toDouble / 1000.0).getOrElse(0.04)
     val id = idOf(name, luaMethod)
     cache.get(id, maxResourceAgeSeconds) match {
-      case Some(resource) => Future(Responses.ok(resource))
+      case Some(resource) => Future.value(resource.toResponse)
       case None =>
         clientOf(name).get(luaMethod).map { data =>
           cache.put(id, data)
