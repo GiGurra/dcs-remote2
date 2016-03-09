@@ -15,6 +15,15 @@
 * Put the lua scripts from this repository into your .../Saved Games/DCS/Scripts/ folder
 * Run dcs-remote2.jar (you will see a system tray icon if it starts properly)
 
+###### Advanced
+
+* Put the lua scripts into more DCS environment directories
+   * Configured for export environment by default
+   * Change the bind port and hook function in dcs_remote.lua
+* Edit dcs-remote-cfg.json and add more environments
+   * export environment configured by default
+   * See application startup console output for format
+
 
 ##### Getting data from an environment
 
