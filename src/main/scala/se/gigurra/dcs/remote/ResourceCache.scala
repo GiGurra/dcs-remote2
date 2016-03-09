@@ -3,18 +3,16 @@ package se.gigurra.dcs.remote
 import scala.collection.mutable
 
 case class ResourceCache(_maxSizeMb: Int) {
-  val maxSize: Long = _maxSizeMb.toLong * 1024L * 1024L
+  val maxBytes: Long = _maxSizeMb.toLong * 1024L * 1024L
 
   def put(id: String, data: String): Unit = synchronized {
 
-    val newDataSize = approxSizeOf(data)
+    val item = Item(id, data, time)
 
-    while(nonEmpty && (newDataSize + size > maxSize))
+    while(nonEmpty && (item.byteSize + byteSize > maxBytes))
       deleteOldest()
 
-    val newItem = Item(id, data, time)
-    store += id -> newItem
-    ageQue += newItem
+    add(item)
   }
 
   def get(id: String, maxAgeSeconds: Double): Option[String] = synchronized {
@@ -22,26 +20,37 @@ case class ResourceCache(_maxSizeMb: Int) {
   }
 
   def delete(id: String): Unit = synchronized {
-    store.remove(id)
-    ageQue.dequeueAll(_.id == id)
+    store.remove(id).foreach(oldItem => _byteSize -= oldItem.byteSize)
   }
 
-  private def size: Long = _size
-  private def approxSizeOf(data: String): Long = data.size.toLong * 120L / 100L
+  def items: Seq[(String, String)] = synchronized {
+    store.toSeq.map(p => (p._1, p._2.data))
+  }
+
+  def byteSize: Long =  synchronized {
+    _byteSize
+  }
+
+  def deleteOldest(): Unit = synchronized {
+    if (store.nonEmpty)
+      delete(store.head._1)
+  }
+
+  private def add(item: Item): Unit = {
+    delete(item.id) // Must be done explicitly to preserve insertion order
+    store += item.id -> item
+    _byteSize += item.byteSize
+  }
+
+  private var _byteSize: Long = 0L
   private def isEmpty: Boolean = store.isEmpty
   private def nonEmpty: Boolean = !isEmpty
   private def time: Double = System.nanoTime / 1e9
 
-  private def deleteOldest(): Unit = {
-    val item = ageQue.dequeue()
-    store.remove(item.id)
-  }
-
   private case class Item(id: String, data: String, timeStamp: Double) {
     def age: Double = time - timeStamp
+    val byteSize: Long = data.length * 2
   }
 
-  private val store = new mutable.HashMap[String, Item]()
-  private val ageQue = new mutable.Queue[Item]()
-  private var _size = 0L
+  private val store = new mutable.LinkedHashMap[String, Item]()
 }
