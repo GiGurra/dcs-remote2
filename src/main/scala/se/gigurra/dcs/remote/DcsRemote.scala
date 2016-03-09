@@ -13,12 +13,10 @@ import se.gigurra.serviceutils.twitter.service.ExceptionFilter
 object DcsRemote extends Logging {
 
   def main(args: Array[String]): Unit = {
-
     val config = Configuration.readFromFile()
+    logger.info(s"Config:\n ${JSON.write(config)}")
+
     val trayIcon = TrayIcon.setup()
-
-    logger.info(s"Starting DCS Remote REST proxy with config:\n ${JSON.write(config)}")
-
     val cache = new ResourceCache(config.cache_size_mb)
     val clients = DcsClient.createClients(config)
     val service = ExceptionFilter[Exception]() andThen new RestService(config, cache, clients)

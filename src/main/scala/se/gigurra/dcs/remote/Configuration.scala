@@ -33,6 +33,7 @@ object Configuration extends Schema[Configuration] with Logging {
   val mappings      = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
 
   def readFromFile(s: String = "dcs-remote-cfg.json"): Configuration = {
+    logger.info(s"Loading configuration file: $s")
     Try(JSON.read[Configuration](scala.io.Source.fromFile(s).mkString)) match {
       case Success(cfg) => cfg
       case Failure(e: FileNotFoundException) =>
