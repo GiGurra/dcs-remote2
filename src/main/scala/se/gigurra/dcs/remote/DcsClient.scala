@@ -24,7 +24,7 @@ case class DcsClient(name: String, port: Int) {
 
     val p = Promise[String]()
     clientActor ! Request(
-      s"return $luaMethod{${methodParameters.map(p => s"${p._1}=${quote(p._2)}").mkString(",")}}",
+      s"return $luaMethod{${methodParameters.map(p => s"${p._1}=${paramValue(p._2)}").mkString(",")}}",
       msg => p.complete(Try(msg)),
       id => p.failure(new TimeoutException(s"Get-Request to DCS/$name/$luaMethod timed out(id=$id)")),
       timeout)
@@ -61,9 +61,30 @@ case class DcsClient(name: String, port: Int) {
   private def quote(s: String): String = '"' + s + '"'
 
   private def paramValue(s: String): String = {
-    if (s.contains)
-    Try(s)
+
+    val nDigits = s.count(isNumber)
+    val nSeparators = s.count(isSeparator)
+
+    if (nDigits > 0 && nDigits + nSeparators == s.size) {
+      nSeparators match {
+        case 0 => s.toLong.toString
+        case 1 => s.toDouble.toString
+        case _ => quote(s)
+      }
+    } else {// Must be a string
+      quote(s)
+    }
+
   }
+
+  private def isSeparator(c: Char): Boolean = {
+    c ==  '.' || c == ','
+  }
+
+  private def isNumber(c: Char): Boolean = {
+    c.isDigit
+  }
+
 }
 
 object DcsClient {
