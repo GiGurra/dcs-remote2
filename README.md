@@ -1,6 +1,6 @@
 # dcs-remote2
 
-* Provides a REST API with full script access to lua environments in DCS!
+* Provides a REST API with full script access to lua environments in DCS
 * Consists of a super thin lua script communicating with a REST Proxy written in Scala/Java.
 * RESTful: Easily accessible  from any programming language or tool 
 * Fast: Includes a built in cache (size configurable) in the REST proxy
