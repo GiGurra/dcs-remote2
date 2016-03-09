@@ -13,7 +13,7 @@
 ### Instructions
 
 * Put the lua scripts from this repository into your .../Saved Games/DCS/Scripts/ folder
-* Run dcs-remote2.jar (you will see a system tray icon if it starts properly)
+* Run the dcs-remote2 jar (you will see a system tray icon if it starts properly)
 
 ####### Advanced
 
