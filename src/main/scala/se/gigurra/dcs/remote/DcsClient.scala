@@ -20,11 +20,11 @@ case class DcsClient(name: String, port: Int) {
   private val clientActor = ActorSystem().actorOf(Props(new DcsClientActor(addr)))
   private val timeout: FiniteDuration = FiniteDuration.apply(2, TimeUnit.SECONDS)
 
-  def get(luaMethod: String, methodParameters: Map[String, String]): Future[String] = {
+  def get(luaMethod: String, methodParameters: Seq[(String, String)]): Future[String] = {
 
     val p = Promise[String]()
     clientActor ! Request(
-      s"return $luaMethod(${methodParameters.values.map(quote).mkString(",")})",
+      s"return $luaMethod{${methodParameters.map(p => s"${p._1}=${quote(p._2)}").mkString(",")}}",
       msg => p.complete(Try(msg)),
       id => p.failure(new TimeoutException(s"Get-Request to DCS/$name timed out(id=$id)")),
       timeout)

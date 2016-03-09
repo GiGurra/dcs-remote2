@@ -30,7 +30,7 @@ case class RestService(config: Configuration,
     cache.get(id, maxResourceAgeSeconds) match {
       case Some(resource) => Future(Responses.ok(resource))
       case None =>
-        clientOf(name).get(luaMethod, request.params - MAX_CACHE_AGE_KEY).map { data =>
+        clientOf(name).get(luaMethod, request.params.toSeq.filterNot(_._1 == MAX_CACHE_AGE_KEY)).map { data =>
           cache.put(id, data)
           data.toResponse
         }
