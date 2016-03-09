@@ -103,14 +103,25 @@ local function handleIncoming(client)
 
         local runnable, loadErr = loadstring(script)
         if runnable then
-            local result, errRes = runnable()
-            if result then
-                send(client, result, requestId)
-            else
-                send(client, { returnValue = "nil" }, requestId)
+
+            local status, pcallErr = pcall(function ()
+
+                local result, errRes = runnable()
+                if result then
+                    send(client, result, requestId)
+                else
+                    send(client, { err = errRes }, requestId)
+                    log_err("failed to execute script: " .. script)
+                    log_err(errRes)
+                end
+            end)
+
+            if pcallErr then
+                send(client, { err = pcallErr }, requestId)
                 log_err("failed to execute script: " .. script)
-                log_err(errRes)
+                log_err(pcallErr)
             end
+
         else
             log_err("failed to load script: " .. script)
             log_err(loadErr)
