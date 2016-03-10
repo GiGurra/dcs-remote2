@@ -17,7 +17,7 @@ import scala.util.Try
 case class DcsClient(name: String, port: Int) {
 
   private val addr = new InetSocketAddress("127.0.0.1", port)
-  private val clientActor = ActorSystem().actorOf(Props(new DcsClientActor(addr)))
+  private val clientActor = DcsClient.actorSystem.actorOf(Props(new DcsClientActor(addr)))
   private val timeout: FiniteDuration = FiniteDuration.apply(2, TimeUnit.SECONDS)
 
   def get(luaMethod: String): Future[String] = {
@@ -66,4 +66,6 @@ object DcsClient {
       env.name -> DcsClient(env.name, env.port)
     }.toMap
   }
+
+  val actorSystem = ActorSystem()
 }
