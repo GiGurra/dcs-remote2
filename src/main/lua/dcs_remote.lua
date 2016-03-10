@@ -178,5 +178,5 @@ function LuaExportStop()
         disconnect(client)
     end
 
-	serverSocket:close()
+    serverSocket:close()
 end
