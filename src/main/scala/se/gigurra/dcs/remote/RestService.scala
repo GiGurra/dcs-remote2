@@ -12,6 +12,8 @@ case class RestService(config: Configuration,
   extends Service[Request, Response]
     with ServiceErrors {
 
+  println(clients)
+
   override def apply(request: Request) = ServiceExceptionFilter {
     request.method -> Path(request.path) match {
       case Method.Get     -> Root / env / resource   => handleGet(request, env, resource)

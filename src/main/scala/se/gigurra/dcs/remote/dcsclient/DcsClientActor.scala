@@ -35,7 +35,7 @@ class DcsClientActor(address: InetSocketAddress) extends Actor with Logging {
 
   private var status: ConnStatus = DISCONNECTED
   private var server: Option[ActorRef] = None
-  private val buffer = new LineSplitter
+  private val buffer = new se.gigurra.dcs.remote.tcpClient.LineSplitter //new LineSplitter
   private val listeners = new mutable.ArrayBuffer[DcsRemoteListener]
   private val pendingRequests = new mutable.HashMap[String, Request]
   reconnect()
@@ -98,7 +98,7 @@ class DcsClientActor(address: InetSocketAddress) extends Actor with Logging {
   }
 
   def handleReceived(data: ByteString) {
-    buffer(data.utf8String) foreach handleMsg
+    buffer(data.asByteBuffer) foreach handleMsg
   }
 
   def handleRegisterListener(listener: DcsRemoteListener) {
