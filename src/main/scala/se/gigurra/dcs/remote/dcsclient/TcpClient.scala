@@ -28,9 +28,9 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
 
   def request(req: Request): Future[String] = {
     if (!isConnected) {
-      timer.schedule(Time.now + Duration.fromSeconds(2))(req.promise.setException(notFound(s"Request dropped - not connected to dcs!")))
+      timer.schedule(Time.now + Duration.fromSeconds(2))(req.promise.setException(unavailable(s"Request dropped - not connected to dcs!")))
     } else if (size >= maxPendingRequests) {
-      timer.schedule(Time.now + Duration.fromSeconds(2))(req.promise.setException(notFound(s"Request dropped - to many pending requests!")))
+      timer.schedule(Time.now + Duration.fromSeconds(2))(req.promise.setException(tooManyRequests(s"Request dropped - to many pending requests!")))
     } else {
       unsentRequests.add(req)
       writeThread.wakeUp()
@@ -71,7 +71,7 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
         sentRequests.put(req.id, req)
         timer.schedule(Time.now + Duration.fromSeconds(2)){
           sentRequests.remove(req.id) foreach { req =>
-            req.promise.setException(notFound(s"Request id ${req.id} to dcs environment $env timed out!"))
+            req.promise.setException(timeout(s"Request id ${req.id} to dcs environment $env timed out!"))
           }
         }
 
