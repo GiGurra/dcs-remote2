@@ -9,7 +9,6 @@ import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.logging.Logging
 import se.gigurra.serviceutils.twitter.service.ExceptionFilter
 
-
 object DcsRemote extends Logging {
 
   def main(args: Array[String]): Unit = {

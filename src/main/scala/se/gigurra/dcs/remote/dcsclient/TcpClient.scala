@@ -39,32 +39,38 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
   }
 
   // Only the reconnectThread loop may set socket = None, for race reasons
-  private val reconnectThread = new WorkerThread[Any] {
+  private val reconnectThread = new WorkerThread[Any]("reconnect") {
     override def update(s: Socket) {}
 
     override def run(): Unit = {
-      while (true) {
-        if (!isConnected) {
-          val s = new Socket()
-          s.setTcpNoDelay(true)
-          Try {
-            s.connect(inetSockAddr)
-          } match {
-            case Success(_) =>
-              logger.info(s"Connected to dcs environment $env on port $port!")
-              socket = Some(s)
-            case Failure(e) =>
-              logger.warning(s"Failed to connect ($e) to dcs environment $env! on port $port")
-              s.kill()
+      try {
+        while (true) {
+          if (!isConnected) {
+            val s = new Socket()
+            s.setTcpNoDelay(true)
+            Try {
+              s.connect(inetSockAddr)
+            } match {
+              case Success(_) =>
+                logger.info(s"Connected to dcs environment $env on port $port!")
+                socket = Some(s)
+              case Failure(e) =>
+                logger.warning(s"Failed to connect ($e) to dcs environment $env! on port $port")
+                s.kill()
+            }
           }
+          sleep()
         }
-        sleep()
+      } catch {
+        case NonFatal(e) =>
+          logger.fatal(s"reconnect/$this crashed! - shutting down Dcs Remote")
+          System.exit(1)
       }
     }
     start()
   }
 
-  private val writeThread = new WorkerThread[OutputStream] {
+  private val writeThread = new WorkerThread[OutputStream]("write") {
     override def update(socket: Socket): Unit = {
       while (unsentRequests.nonEmpty && socket.isAlive) {
         val req = unsentRequests.poll()
@@ -92,7 +98,7 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
   }
 
 
-  private val readThread = new WorkerThread[InputStream] {
+  private val readThread = new WorkerThread[InputStream]("read") {
 
     val lineSplitter = new LineSplitter
     val readbuf = new Array[Byte](2048)
@@ -147,14 +153,20 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
     }
   }
 
-  private abstract class WorkerThread[StreamType]() extends Thread {
+  private abstract class WorkerThread[StreamType](name: String) extends Thread {
     private var hasWork = false
     protected val streams = new mutable.WeakHashMap[Socket, StreamType]
 
     override def run(): Unit = {
-      while(true) {
-        socket.foreach(update)
-        sleep()
+      try {
+        while (true) {
+          socket.foreach(update)
+          sleep()
+        }
+      } catch {
+        case NonFatal(e) =>
+          logger.fatal(s"$name/$this crashed! - shutting down Dcs Remote")
+          System.exit(1)
       }
     }
 
