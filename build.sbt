@@ -7,7 +7,7 @@ val dcs_remote = Project(id = "dcs-remote", base = file("."))
     scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation"),
 
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %   "akka-actor_2.11"   %   "2.3.8",
+      "com.typesafe.akka" %   "akka-actor_2.11"   %   "2.4.2",
       "org.scalatest"     %%  "scalatest"         %   "2.2.4"     %   "test",
       "org.mockito"       %   "mockito-core"      %   "1.10.19"   %   "test"
     )
