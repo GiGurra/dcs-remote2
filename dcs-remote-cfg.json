@@ -1,3 +1,10 @@
 {
-  "cache_size_mb":100
+  "cache_size_mb": 100,
+  "rest_port": 12340,
+  "mappings": [
+    {
+      "name": "export",
+      "port": 13465
+    }
+  ]
 }
