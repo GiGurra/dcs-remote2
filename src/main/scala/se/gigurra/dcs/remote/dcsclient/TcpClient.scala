@@ -98,6 +98,7 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
     val readbuf = new Array[Byte](2048)
 
     override def update(socket: Socket): Unit = {
+      lineSplitter.clear()
       while (socket.isAlive) {
         Try {
           val stream = streams.getOrElseUpdate(socket, new BufferedInputStream(socket.getInputStream))
