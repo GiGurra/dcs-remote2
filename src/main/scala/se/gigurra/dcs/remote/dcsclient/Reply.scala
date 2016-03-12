@@ -1,7 +1,7 @@
 package se.gigurra.dcs.remote.dcsclient
 
 import se.gigurra.heisenberg.MapData.SourceData
-import se.gigurra.heisenberg.{Schema, Parsed}
+import se.gigurra.heisenberg.{Parsed, Schema}
 
 case class Reply(source: SourceData = Map.empty)
   extends Parsed[Reply.type] {

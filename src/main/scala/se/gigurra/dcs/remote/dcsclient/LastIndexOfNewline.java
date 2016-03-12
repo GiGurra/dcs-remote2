@@ -1,8 +1,5 @@
 package se.gigurra.dcs.remote.dcsclient;
 
-/**
- * Created by kjolh on 3/12/2016.
- */
 public class LastIndexOfNewline {
     public static int find(final byte[] data, final int n) {
         for (int i = n-1; i >= 0; i--) {

@@ -1,23 +1,42 @@
 package se.gigurra.dcs.remote.dcsclient
 
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.channels.Channels
+import java.nio.charset.Charset
+import java.util
+
 class LineSplitter {
 
-  private val buffer = new StringBuilder()
+  private val charset = Charset.forName("UTF-8")
 
-  def apply(data: String): Seq[String] = {
-    buffer
-      .append(data)
-      .lastIndexOf("\n") + 1 match {
-        case nComplete if nComplete > 0 =>
-          val out = buffer.substring(0, nComplete).split("\n")
-          buffer.delete(0, nComplete)
-          out
-        case _ => Nil
-      }
+  object buffer extends ByteArrayOutputStream() {
+    def data: Array[Byte] = buf
+    val channel = Channels.newChannel(this)
   }
-  
-  def clear() {
-    buffer.clear()
+
+  def apply(newData: ByteBuffer): Seq[String] = {
+
+    buffer.channel.write(newData)
+
+    val i = LastIndexOfNewline.find(buffer.data, buffer.size) // Dont search whole buffer!
+    if (i >= 0) {
+      val linesBuffer = util.Arrays.copyOfRange(buffer.data, 0, i)
+      val remain = util.Arrays.copyOfRange(buffer.data, i+1, buffer.size)
+      buffer.reset()
+      buffer.write(remain)
+      new String(linesBuffer, charset).lines.toSeq
+    } else {
+      Seq.empty
+    }
   }
-  
+
+  def apply(newData: Array[Byte], n: Int): Seq[String] = {
+    apply(ByteBuffer.wrap(newData, 0, n))
+  }
+
+  def clear(): Unit = {
+    buffer.reset()
+  }
+
 }

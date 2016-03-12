@@ -1,14 +1,14 @@
-package se.gigurra.dcs.remote.tcpClient
+package se.gigurra.dcs.remote.dcsclient
 
 import java.io.{BufferedInputStream, InputStream, OutputStream}
 import java.net.{InetSocketAddress, Socket}
 import java.nio.charset.Charset
-import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import com.twitter.util.{Duration, JavaTimer, NonFatal}
+import com.twitter.util._
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.logging.Logging
+import se.gigurra.serviceutils.twitter.service.ServiceErrors
 
 import scala.collection.JavaConversions._
 import scala.collection.{concurrent, mutable}
@@ -17,7 +17,7 @@ import scala.util.{Failure, Success, Try}
 /**
   * Why? Because akka was too heavy weight and nio is too cumbersome
   */
-case class TcpClient(env: String, port: Int) extends Logging {
+case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors {
   private val inetSockAddr = new InetSocketAddress("127.0.0.1", port)
   private val timer = new JavaTimer(isDaemon = true)
   private val charset = Charset.forName("UTF-8")
@@ -26,13 +26,16 @@ case class TcpClient(env: String, port: Int) extends Logging {
   private val unsentRequests = new ConcurrentLinkedQueue[Request]
   private val sentRequests = new concurrent.TrieMap[String, Request]
 
-  def request(req: Request): Unit = {
-    if (!isConnected)
-      req.onFailure(s"Request dropped - not connected to dcs!")
-    if (size >= maxPendingRequests)
-      req.onFailure(s"Request dropped - to many pending requests!")
-    unsentRequests.add(req)
-    writeThread.wakeUp()
+  def request(req: Request): Future[String] = {
+    if (!isConnected) {
+      timer.schedule(Time.now + Duration.fromSeconds(2))(req.promise.setException(notFound(s"Request dropped - not connected to dcs!")))
+    } else if (size >= maxPendingRequests) {
+      timer.schedule(Time.now + Duration.fromSeconds(2))(req.promise.setException(notFound(s"Request dropped - to many pending requests!")))
+    } else {
+      unsentRequests.add(req)
+      writeThread.wakeUp()
+    }
+    req.reply
   }
 
   // Only the reconnectThread loop may set socket = None, for race reasons
@@ -41,16 +44,17 @@ case class TcpClient(env: String, port: Int) extends Logging {
 
     override def run(): Unit = {
       while (true) {
-        println("Rec")
         if (!isConnected) {
           val s = new Socket()
           s.setTcpNoDelay(true)
           Try {
             s.connect(inetSockAddr)
           } match {
-            case Success(_) => logger.info(s"Connected to dcs environment $env on port $port!")
+            case Success(_) =>
+              logger.info(s"Connected to dcs environment $env on port $port!")
               socket = Some(s)
-            case Failure(e) => logger.warning(s"Failed to connect ($e) to dcs environment $env! on port $port")
+            case Failure(e) =>
+              logger.warning(s"Failed to connect ($e) to dcs environment $env! on port $port")
               s.kill()
           }
         }
@@ -65,6 +69,12 @@ case class TcpClient(env: String, port: Int) extends Logging {
       while (unsentRequests.nonEmpty && socket.isAlive) {
         val req = unsentRequests.poll()
         sentRequests.put(req.id, req)
+        timer.schedule(Time.now + Duration.fromSeconds(2)){
+          sentRequests.remove(req.id) foreach { req =>
+            req.promise.setException(notFound(s"Request id ${req.id} to dcs environment $env timed out!"))
+          }
+        }
+
         Try {
           val stream = streams.getOrElseUpdate(socket, socket.getOutputStream)
           val jsonString = JSON.writeMap(Map("script" -> req.script, "requestId" -> req.id.toString)) + "\n"
@@ -88,7 +98,7 @@ case class TcpClient(env: String, port: Int) extends Logging {
     val readbuf = new Array[Byte](2048)
 
     override def update(socket: Socket): Unit = {
-      while (sentRequests.nonEmpty && socket.isAlive) {
+      while (socket.isAlive) {
         Try {
           val stream = streams.getOrElseUpdate(socket, new BufferedInputStream(socket.getInputStream))
           val nRead = stream.read(readbuf)
@@ -100,7 +110,7 @@ case class TcpClient(env: String, port: Int) extends Logging {
               req <- sentRequests.remove(reply.requestId)
             } {
               try {
-                req.onComplete(line)
+                req.promise.setValue(line)
               } catch {
                 case NonFatal(e) =>
                   logger.error(s"Failed handling request ${req.id}: $e", e)
@@ -122,8 +132,8 @@ case class TcpClient(env: String, port: Int) extends Logging {
   }
 
 
-  def isConnected(): Boolean = {
-    socket.fold(false)(!_.isAlive)
+  def isConnected: Boolean = {
+    socket.fold(false)(_.isAlive)
   }
 
   implicit class RichSocket(s: Socket) {
@@ -141,8 +151,10 @@ case class TcpClient(env: String, port: Int) extends Logging {
     protected val streams = new mutable.WeakHashMap[Socket, StreamType]
 
     override def run(): Unit = {
-      socket.foreach(update)
-      sleep()
+      while(true) {
+        socket.foreach(update)
+        sleep()
+      }
     }
 
     def update(socket: Socket): Unit
@@ -166,9 +178,3 @@ case class TcpClient(env: String, port: Int) extends Logging {
     unsentRequests.size + sentRequests.size
   }
 }
-
-case class Request(script: String,
-                   onComplete: String => Unit,
-                   onFailure: String => Unit,
-                   timeOut: Duration,
-                   id: String = UUID.randomUUID().toString) {}
