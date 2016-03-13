@@ -1,6 +1,8 @@
 {
   "cache_size_mb": 100,
   "rest_port": 12340,
+  "connect_to_dcs": true,
+  "show_tray_icon": true,
   "mappings": [
     {
       "name": "export",

@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 import com.twitter.util.Future
 import se.gigurra.dcs.remote.dcsclient.Request
 import se.gigurra.dcs.remote.dcsclient.TcpClient
+import se.gigurra.serviceutils.twitter.logging.Logging
 
 case class DcsClient(name: String, port: Int) {
 
@@ -25,10 +26,15 @@ case class DcsClient(name: String, port: Int) {
 
 }
 
-object DcsClient {
-  def createClients(config: Configuration): Map[String, DcsClient] = {
-    config.mappings.map { env =>
-      env.name -> DcsClient(env.name, env.port)
-    }.toMap
+object DcsClient extends Logging {
+  def createClients(config: Configuration, connectToDcs: Boolean): Map[String, DcsClient] = {
+    if (connectToDcs) {
+      config.mappings.map { env =>
+        env.name -> DcsClient(env.name, env.port)
+      }.toMap
+    } else {
+      logger.info(s"connect_to_dcs = false. NOT creating any connection to DCS!")
+      Map.empty
+    }
   }
 }

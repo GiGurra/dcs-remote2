@@ -22,22 +22,26 @@ object LuaEnvironmentMap extends Schema[LuaEnvironmentMap] {
 
 case class Configuration(source: SourceData = Map.empty)
   extends Parsed[Configuration.type] {
-  val rest_port     = parse(schema.rest_port)
-  val cache_size_mb = parse(schema.cache_size_mb)
-  val mappings      = parse(schema.mappings)
+  val rest_port      = parse(schema.rest_port)
+  val cache_size_mb  = parse(schema.cache_size_mb)
+  val connect_to_dcs = parse(schema.connect_to_dcs)
+  val show_tray_icon = parse(schema.show_tray_icon)
+  val mappings       = parse(schema.mappings)
 }
 
 object Configuration extends Schema[Configuration] with Logging {
-  val rest_port     = required[Int]("rest_port", default = 12340)
-  val cache_size_mb = required[Int]("cache_size_mb", default = 50)
-  val mappings      = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
+  val rest_port      = required[Int]("rest_port", default = 12340)
+  val cache_size_mb  = required[Int]("cache_size_mb", default = 50)
+  val connect_to_dcs = required[Boolean]("connect_to_dcs", default = true)
+  val show_tray_icon = required[Boolean]("show_tray_icon", default = true)
+  val mappings       = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
 
   def readFromFile(s: String = "dcs-remote-cfg.json"): Configuration = {
     logger.info(s"Loading configuration file: $s")
     Try(JSON.read[Configuration](scala.io.Source.fromFile(s).mkString)) match {
       case Success(cfg) => cfg
       case Failure(e: FileNotFoundException) =>
-        logger.info(s"No config file found (path=${s}) - using default configuration")
+        logger.info(s"No config file found (path=$s) - using default configuration")
         Configuration()
       case Failure(e) =>
         logger.fatal(e, s"Failed to read config file ($e) '$s'")

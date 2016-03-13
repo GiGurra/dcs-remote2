@@ -15,9 +15,11 @@ object DcsRemote extends Logging {
     val config = Configuration.readFromFile()
     logger.info(s"Config:\n ${JSON.write(config)}")
 
-    val trayIcon = TrayIcon.setup()
+    if (config.show_tray_icon)
+      TrayIcon.setup()
+
     val cache = new ResourceCache(config.cache_size_mb)
-    val clients = DcsClient.createClients(config)
+    val clients = DcsClient.createClients(config, config.connect_to_dcs)
     val service = ExceptionFilter[Exception]() andThen new RestService(config, cache, clients)
     val server = ServerBuilder()
       // .tls(certificatePath = "", keyPath = "")
