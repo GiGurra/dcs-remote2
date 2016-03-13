@@ -14,6 +14,7 @@ case class RestService(config: Configuration,
 
   override def apply(request: Request) = ServiceExceptionFilter {
     request.method -> Path(request.path) match {
+      case Method.Get     -> Root / env              => handleGetAllFromCache(request, env)
       case Method.Get     -> Root / env / resource   => handleGet(request, env, resource)
       case Method.Delete  -> Root / env / resource   => handleDelete(request, env, resource)
       case Method.Post    -> Root / env              => handlePost(request, env)
@@ -22,11 +23,27 @@ case class RestService(config: Configuration,
     }
   }
 
+  private def getMaxCacheAge(request: Request, default: Double): Double = {
+    request.params.get(MAX_CACHE_AGE_KEY).map(_.toDouble / 1000.0).getOrElse(default)
+  }
+
+  private def handleGetAllFromCache(request: Request,
+                                    env: String): Future[Response] = {
+
+    val maxResourceAgeSeconds = getMaxCacheAge(request, 10.0)
+    val itemsRequested = cache.items
+        .filter(_.age <= maxResourceAgeSeconds)
+        .filter(_.id.startsWith(env))
+        .map(item => s""""${item.id.substring(env.length+1)}":{"age":${item.age},"data":${item.data}}""")
+    val concatenatedJsonString = itemsRequested.mkString("{", ",", "}")
+    Future(concatenatedJsonString.toResponse)
+  }
+
   private def handleGet(request: Request,
                         env: String,
                         resource: String): Future[Response] = {
 
-    val maxResourceAgeSeconds = request.params.get(MAX_CACHE_AGE_KEY).map(_.toDouble / 1000.0).getOrElse(0.04)
+    val maxResourceAgeSeconds = getMaxCacheAge(request, 0.04)
     val id = idOf(env, resource)
     cache.get(id, maxResourceAgeSeconds) match {
       case Some(data) => Future.value(data.toResponse)

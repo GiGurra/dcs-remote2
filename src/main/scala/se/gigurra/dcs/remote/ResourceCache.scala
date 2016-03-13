@@ -7,7 +7,7 @@ case class ResourceCache(_maxSizeMb: Int) {
 
   def put(id: String, data: String): Unit = synchronized {
 
-    val item = Item(id, data, time)
+    val item = CacheItem(id, data, time)
 
     while(nonEmpty && (item.byteSize + byteSize > maxBytes))
       deleteOldest()
@@ -23,8 +23,10 @@ case class ResourceCache(_maxSizeMb: Int) {
     store.remove(id).foreach(oldItem => _byteSize -= oldItem.byteSize)
   }
 
-  def items: Seq[(String, String)] = synchronized {
-    store.toSeq.map(p => (p._1, p._2.data))
+  def items: Array[CacheItem] = synchronized {
+    val out = new Array[CacheItem](store.size)
+    store.values.copyToArray(out)
+    out
   }
 
   def byteSize: Long =  synchronized {
@@ -36,7 +38,7 @@ case class ResourceCache(_maxSizeMb: Int) {
       delete(store.head._1)
   }
 
-  private def add(item: Item): Unit = {
+  private def add(item: CacheItem): Unit = {
     delete(item.id) // Must be done explicitly to preserve insertion order
     store += item.id -> item
     _byteSize += item.byteSize
@@ -47,10 +49,11 @@ case class ResourceCache(_maxSizeMb: Int) {
   private def nonEmpty: Boolean = !isEmpty
   private def time: Double = System.nanoTime / 1e9
 
-  private case class Item(id: String, data: String, timeStamp: Double) {
-    def age: Double = time - timeStamp
-    val byteSize: Long = data.length * 2
-  }
+  private val store = new mutable.LinkedHashMap[String, CacheItem]()
+}
 
-  private val store = new mutable.LinkedHashMap[String, Item]()
+case class CacheItem(id: String, data: String, timeStamp: Double) {
+  def age: Double = time - timeStamp
+  val byteSize: Long = data.length * 2
+  private def time: Double = System.nanoTime / 1e9
 }
