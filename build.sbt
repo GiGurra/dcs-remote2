@@ -13,4 +13,3 @@ val dcs_remote = Project(id = "dcs-remote", base = file("."))
     
   )
   .dependsOn(uri("git://github.com/GiGurra/service-utils.git#0.1.5"))
-  
