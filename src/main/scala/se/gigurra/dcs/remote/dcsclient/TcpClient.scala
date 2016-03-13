@@ -25,6 +25,7 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
   private val maxPendingRequests = 1000
   private val unsentRequests = new ConcurrentLinkedQueue[Request]
   private val sentRequests = new concurrent.TrieMap[String, Request]
+  @volatile private var timedOutRequestsInARow = 0
 
   def request(req: Request): Future[String] = {
     if (!isConnected) {
@@ -77,7 +78,13 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
         sentRequests.put(req.id, req)
         timer.schedule(Time.now + Duration.fromSeconds(2)){
           sentRequests.remove(req.id) foreach { req =>
+            timedOutRequestsInARow+=1
             req.promise.setException(timeout(s"Request id ${req.id} to dcs environment $env timed out!"))
+            if (timedOutRequestsInARow >= 3) {
+              timedOutRequestsInARow = 0
+              logger.warning(s"Restarting connection to dcs due to too many timed out requests in a row")
+              socket.kill()
+            }
           }
         }
 
@@ -118,6 +125,7 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
             } {
               try {
                 req.promise.setValue(line)
+                timedOutRequestsInARow = 0
               } catch {
                 case NonFatal(e) =>
                   logger.error(s"Failed handling request ${req.id}: $e", e)
