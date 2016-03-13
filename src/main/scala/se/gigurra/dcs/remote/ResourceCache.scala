@@ -1,5 +1,7 @@
 package se.gigurra.dcs.remote
 
+import java.time.Instant
+
 import scala.collection.mutable
 
 case class ResourceCache(_maxSizeMb: Int) {
@@ -47,13 +49,13 @@ case class ResourceCache(_maxSizeMb: Int) {
   private var _byteSize: Long = 0L
   private def isEmpty: Boolean = store.isEmpty
   private def nonEmpty: Boolean = !isEmpty
-  private def time: Double = System.nanoTime / 1e9
+  private def time: Double = Instant.now.toEpochMilli.toDouble / 1000.0
 
   private val store = new mutable.LinkedHashMap[String, CacheItem]()
 }
 
-case class CacheItem(id: String, data: String, timeStamp: Double) {
-  def age: Double = time - timeStamp
+case class CacheItem(id: String, data: String, timestamp: Double) {
+  def age: Double = time - timestamp
   val byteSize: Long = data.length * 2
-  private def time: Double = System.nanoTime / 1e9
+  private def time: Double = Instant.now.toEpochMilli.toDouble / 1000.0
 }

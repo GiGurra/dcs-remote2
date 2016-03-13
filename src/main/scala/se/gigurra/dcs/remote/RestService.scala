@@ -34,7 +34,7 @@ case class RestService(config: Configuration,
     val itemsRequested = cache.items
         .filter(_.age <= maxResourceAgeSeconds)
         .filter(_.id.startsWith(env))
-        .map(item => s""""${item.id.substring(env.length+1)}":{"age":${item.age},"data":${item.data}}""")
+        .map(item => s""""${item.id.substring(env.length+1)}":{"age":${item.age},"timestamp":${item.timestamp},"data":${item.data}}""")
     val concatenatedJsonString = itemsRequested.mkString("{", ",", "}")
     Future(concatenatedJsonString.toResponse)
   }
