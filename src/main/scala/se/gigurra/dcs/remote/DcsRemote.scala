@@ -23,7 +23,7 @@ object DcsRemote extends Logging {
       // .tls(certificatePath = "", keyPath = "")
       .codec(Http())
       .bindTo(new InetSocketAddress(config.rest_port))
-      .name("Valhalla Server")
+      .name("DCS Remote")
       .build(service)
 
     Await.ready(server)
