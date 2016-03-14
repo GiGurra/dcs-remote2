@@ -4,8 +4,11 @@ import com.twitter.finagle.{http, Service}
 import com.twitter.finagle.http.path.{Path, Root, _}
 import com.twitter.finagle.http._
 import com.twitter.util.Future
+import org.json4s.jackson.JsonMethods
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.service.{Responses, ServiceErrors, ServiceExceptionFilter}
+
+import scala.util.{Failure, Success, Try}
 
 case class RestService(config: Configuration,
                        cache: ResourceCache,
@@ -86,8 +89,14 @@ case class RestService(config: Configuration,
                         env: String,
                         resource: String): Future[Response] = {
     val id = idOf(env, resource)
-    cache.put(id, request.contentString)
-    Responses.Ok(s"Resource stored in cache")
+
+    Try(JsonMethods.parse(request.contentString)) match {
+      case Success(_) =>
+        cache.put(id, request.contentString)
+        Responses.Ok(s"Resource stored in cache")
+      case Failure(e) =>
+        Responses.BadRequest(s"Malformated json content string")
+    }
   }
 
   private def idOf(env: String, resource: String): String = {
