@@ -9,6 +9,13 @@ import se.gigurra.serviceutils.twitter.logging.Logging
 
 import scala.util.{Failure, Success, Try}
 
+case class StaticData(source: SourceData = Map.empty)
+  extends Parsed[StaticData.type] {
+}
+
+object StaticData extends Schema[StaticData] {
+}
+
 case class LuaEnvironmentMap(source: SourceData = Map.empty)
   extends Parsed[LuaEnvironmentMap.type] {
   val name  = parse(schema.name)
@@ -27,6 +34,7 @@ case class Configuration(source: SourceData = Map.empty)
   val connect_to_dcs = parse(schema.connect_to_dcs)
   val show_tray_icon = parse(schema.show_tray_icon)
   val mappings       = parse(schema.mappings)
+  val staticData     = parse(schema.staticData)
 }
 
 object Configuration extends Schema[Configuration] with Logging {
@@ -35,6 +43,7 @@ object Configuration extends Schema[Configuration] with Logging {
   val connect_to_dcs = required[Boolean]("connect_to_dcs", default = true)
   val show_tray_icon = required[Boolean]("show_tray_icon", default = true)
   val mappings       = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
+  val staticData     = required[StaticData]("static-data", default = StaticData())
 
   def readFromFile(s: String = "dcs-remote-cfg.json"): Configuration = {
     logger.info(s"Loading configuration file: $s")

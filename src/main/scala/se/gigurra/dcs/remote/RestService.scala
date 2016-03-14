@@ -4,6 +4,7 @@ import com.twitter.finagle.{http, Service}
 import com.twitter.finagle.http.path.{Path, Root, _}
 import com.twitter.finagle.http._
 import com.twitter.util.Future
+import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.service.{Responses, ServiceErrors, ServiceExceptionFilter}
 
 case class RestService(config: Configuration,
@@ -14,17 +15,30 @@ case class RestService(config: Configuration,
 
   override def apply(request: Request) = ServiceExceptionFilter {
     request.method -> Path(request.path) match {
-      case Method.Get     -> Root / env              => handleGetAllFromCache(request, env)
-      case Method.Get     -> Root / env / resource   => handleGet(request, env, resource)
-      case Method.Delete  -> Root / env / resource   => handleDelete(request, env, resource)
-      case Method.Post    -> Root / env              => handlePost(request, env)
-      case Method.Put     -> Root / env / resource   => handlePut(request, env, resource)
-      case _                                         => NotFound("No such route")
+      case Method.Get     -> Root / "static-data"            => handleGetAllStaticData(request)
+      case Method.Get     -> Root / "static-data" / resource => handleGetStaticData(request, resource)
+      case Method.Get     -> Root / env                      => handleGetAllFromCache(request, env)
+      case Method.Get     -> Root / env / resource           => handleGet(request, env, resource)
+      case Method.Delete  -> Root / env / resource           => handleDelete(request, env, resource)
+      case Method.Post    -> Root / env                      => handlePost(request, env)
+      case Method.Put     -> Root / env / resource           => handlePut(request, env, resource)
+      case _                                                 => NotFound("No such route")
     }
   }
 
   private def getMaxCacheAge(request: Request, default: Double): Double = {
     request.params.get(MAX_CACHE_AGE_KEY).map(_.toDouble / 1000.0).getOrElse(default)
+  }
+
+  private def handleGetAllStaticData(request: Request): Future[Response] = {
+    Future(JSON.writeMap(config.staticData).toResponse)
+  }
+
+  private def handleGetStaticData(request: Request, resource: String): Future[Response] = {
+    config.staticData.source.get(resource) match {
+      case Some(data) => Future(JSON.writeMap(data.asInstanceOf[Map[String, Any]]).toResponse)
+      case None => Future(Responses.notFound(s"Resource static-data/$resource not found"))
+    }
   }
 
   private def handleGetAllFromCache(request: Request,
