@@ -31,11 +31,11 @@ case class RestService(config: Configuration,
   }
 
   private def handleGetAllStaticData(request: Request): Future[Response] = {
-    Future(JSON.writeMap(config.staticData).toResponse)
+    Future(JSON.writeMap(StaticData.readFromFile().source).toResponse)
   }
 
   private def handleGetStaticData(request: Request, resource: String): Future[Response] = {
-    config.staticData.source.get(resource) match {
+    StaticData.readFromFile().source.get(resource) match {
       case Some(data) => Future(JSON.writeMap(data.asInstanceOf[Map[String, Any]]).toResponse)
       case None => Future(Responses.notFound(s"Resource static-data/$resource not found"))
     }

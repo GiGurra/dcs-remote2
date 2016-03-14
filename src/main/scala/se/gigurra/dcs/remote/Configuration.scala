@@ -14,6 +14,9 @@ case class StaticData(source: SourceData = Map.empty)
 }
 
 object StaticData extends Schema[StaticData] {
+  def readFromFile(s: String = "static-data.json"): StaticData = {
+    JSON.read[StaticData](scala.io.Source.fromFile(s).mkString)
+  }
 }
 
 case class LuaEnvironmentMap(source: SourceData = Map.empty)
@@ -34,7 +37,6 @@ case class Configuration(source: SourceData = Map.empty)
   val connect_to_dcs = parse(schema.connect_to_dcs)
   val show_tray_icon = parse(schema.show_tray_icon)
   val mappings       = parse(schema.mappings)
-  val staticData     = parse(schema.staticData)
 }
 
 object Configuration extends Schema[Configuration] with Logging {
@@ -43,7 +45,6 @@ object Configuration extends Schema[Configuration] with Logging {
   val connect_to_dcs = required[Boolean]("connect_to_dcs", default = true)
   val show_tray_icon = required[Boolean]("show_tray_icon", default = true)
   val mappings       = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
-  val staticData     = required[StaticData]("static-data", default = StaticData())
 
   def readFromFile(s: String = "dcs-remote-cfg.json"): Configuration = {
     logger.info(s"Loading configuration file: $s")

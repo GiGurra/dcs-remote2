@@ -8,13 +8,5 @@
       "name": "export",
       "port": 13465
     }
-  ],
-  "static-data" : {
-    "dlink-settings" : {
-      "host"        : "build.culvertsoft.se",
-      "port"        : 12340,
-      "team"        : "BLUE_RABBITS",
-      "callsign"    : "JarJar"
-    }
-  }
+  ]
 }
