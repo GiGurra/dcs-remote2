@@ -128,7 +128,7 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
                 timedOutRequestsInARow = 0
               } catch {
                 case NonFatal(e) =>
-                  logger.error(s"Failed handling request ${req.id}: $e", e)
+                  logger.error(e, s"Failed handling request ${req.id}: $e")
               }
             }
           } else if (nRead < 0) {
