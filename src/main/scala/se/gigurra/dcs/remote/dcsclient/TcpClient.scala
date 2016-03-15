@@ -64,7 +64,7 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
         }
       } catch {
         case NonFatal(e) =>
-          logger.fatal(s"reconnect/$this crashed! - shutting down Dcs Remote", e)
+          logger.fatal(e, s"reconnect/$this crashed! - shutting down Dcs Remote")
           System.exit(1)
       }
     }
@@ -173,7 +173,7 @@ case class TcpClient(env: String, port: Int) extends Logging with ServiceErrors 
         }
       } catch {
         case NonFatal(e) =>
-          logger.fatal(s"$name/$this crashed! - shutting down Dcs Remote", e)
+          logger.fatal(e, s"$name/$this crashed! - shutting down Dcs Remote")
           System.exit(1)
       }
     }
