@@ -2,7 +2,6 @@ package se.gigurra.dcs.remote
 
 import java.io.File
 import java.net.InetSocketAddress
-import javax.swing.JOptionPane
 
 import com.twitter.finagle.builder.ServerBuilder
 import com.twitter.finagle.http.Http
