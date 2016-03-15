@@ -6,12 +6,16 @@ import com.twitter.finagle.builder.ServerBuilder
 import com.twitter.finagle.http.Http
 import com.twitter.util.Await
 import se.gigurra.serviceutils.json.JSON
-import se.gigurra.serviceutils.twitter.logging.Logging
+import se.gigurra.serviceutils.twitter.logging.{Capture, Logging}
 import se.gigurra.serviceutils.twitter.service.ExceptionFilter
 
 object DcsRemote extends Logging {
 
   def main(args: Array[String]): Unit = {
+
+    Capture.stdOutToFile(s"dcs-remote-debug-log.txt", append = true)
+    Capture.stdErrToFile(s"dcs-remote-log.txt", append = true)
+
     val config = Configuration.readFromFile()
     logger.info(s"Config:\n ${JSON.write(config)}")
 
