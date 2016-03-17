@@ -98,7 +98,6 @@ class AkkaTcpClient(address: InetSocketAddress)
 
   def writeFailed(): Unit = {
     logger.warning(s"AkkaTcpClient Write failed - Output buffer likely full - ignoring request!")
-    system.scheduler.scheduleOnce(1 seconds)(IO(Tcp) ! Connect(address))
   }
 
   def connect(): Unit = {
