@@ -5,6 +5,7 @@ import com.twitter.finagle.http.path.{Path, Root, _}
 import com.twitter.finagle.http._
 import com.twitter.util.Future
 import org.json4s.jackson.JsonMethods
+import se.gigurra.dcs.remote.dcsclient.DcsClient
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.service.{Responses, ServiceErrors, ServiceExceptionFilter}
 

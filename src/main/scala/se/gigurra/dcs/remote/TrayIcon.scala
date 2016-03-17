@@ -3,7 +3,7 @@ package se.gigurra.dcs.remote
 import java.awt
 import java.awt._
 import java.awt.event.{ActionEvent, ActionListener}
-import javax.swing.{ImageIcon, SwingUtilities}
+import javax.swing.ImageIcon
 
 import se.gigurra.serviceutils.twitter.logging.Logging
 

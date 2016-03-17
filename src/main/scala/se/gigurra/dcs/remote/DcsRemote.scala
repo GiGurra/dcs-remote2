@@ -6,6 +6,7 @@ import java.net.InetSocketAddress
 import com.twitter.finagle.builder.ServerBuilder
 import com.twitter.finagle.http.Http
 import com.twitter.util.Await
+import se.gigurra.dcs.remote.dcsclient.DcsClient
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.logging.{Capture, Logging}
 import se.gigurra.serviceutils.twitter.service.ExceptionFilter
