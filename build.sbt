@@ -7,7 +7,9 @@ val dcs_remote = Project(id = "dcs-remote", base = file("."))
     scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation"),
 
     libraryDependencies ++= Seq(
-      "com.typesafe.akka"     % "akka-actor_2.11"         % "2.4.2"
+      "com.typesafe.akka"     % "akka-actor_2.11"         % "2.4.2",
+      "net.java.dev.jna"      %   "jna-platform"          % "4.2.2",
+      "net.java.dev.jna"      %   "jna"                   % "4.2.2"
     )
   )
   .dependsOn(uri("git://github.com/GiGurra/service-utils.git#0.1.7"))

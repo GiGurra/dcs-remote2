@@ -77,8 +77,13 @@ case class RestService(config: Configuration,
                            env: String,
                            resource: String): Future[Response] = {
     val id = idOf(env, resource)
-    cache.delete(id)
-    clientOf(env).delete(resource).map (_ =>  Responses.ok(s"Resource $env/$resource deleted"))
+    (request.getBooleanParam("cache_only") match {
+      case true => Future.Unit
+      case false => clientOf(env).delete(resource)
+    }).map { _ =>
+      cache.delete(id)
+      Responses.ok(s"Resource $env/$resource deleted")
+    }
   }
 
   private def handlePost(request: Request,
