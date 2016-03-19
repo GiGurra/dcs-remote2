@@ -3,7 +3,7 @@ val dcs_remote = Project(id = "dcs-remote", base = file("."))
     organization := "se.gigurra",
     version := "SNAPSHOT",
 
-    scalaVersion := "2.11.7",
+    scalaVersion := "2.11.8",
     scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation"),
 
     libraryDependencies ++= Seq(
