@@ -17,8 +17,6 @@ addScriptDir(lfs.currentdir() .. "/LuaSocket")
 -----------------------------------------------------  IMPORTS ------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------
 
-local VECTOR = require 'Vector'
-local SOCKET = require 'socket'
 local JSON = require 'dkjson'
 local NETUTILS = require 'dcs_remote_net_utils'
 
@@ -28,7 +26,6 @@ local NETUTILS = require 'dcs_remote_net_utils'
 ---------------------------------------------------------------------------------------------------------------------
 
 local logFile = io.open(lfs.writedir().."/Logs/dcs_remote.log", "w")
-local serverSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(13465)))
 local clients = {}
 
 ---------------------------------------------------------------------------------------------------------------------
@@ -146,11 +143,22 @@ local function handleIncoming(client)
     end
 end
 
----------------------------------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------  OVERLOADS -----------------------------------------------------
----------------------------------------------------------------------------------------------------------------------
-    
+-----------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------  HOOKS -----------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
+
+local oldLuaExportStart = LuaExportStart
+local serverSocket = {}
+function LuaExportStart()
+
+    if oldLuaExportStart then
+        oldLuaExportStart()
+    end
+
+    serverSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(13465)))
+end
+
 local oldLuaExportAfterNextFrame = LuaExportAfterNextFrame
 function LuaExportAfterNextFrame()
     if oldLuaExportAfterNextFrame then 

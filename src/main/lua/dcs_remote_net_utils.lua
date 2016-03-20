@@ -13,7 +13,7 @@ local utils = {
     end,
 
     createServerSocket = function(port)
-        return assert(SOCKET.bind("*", port))
+        return assert(SOCKET.bind("127.0.0.1", port))
     end
     
 }
