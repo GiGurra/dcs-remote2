@@ -1,11 +1,15 @@
 package se.gigurra.dcs.remote
 
-import com.twitter.finagle.{http, Service}
+import java.io.File
+import java.nio.file.StandardWatchEventKinds
+
+import com.twitter.finagle.{Service, http}
 import com.twitter.finagle.http.path.{Path, Root, _}
 import com.twitter.finagle.http._
-import com.twitter.util.Future
+import com.twitter.util.{Future, NonFatal}
 import org.json4s.jackson.JsonMethods
 import se.gigurra.dcs.remote.dcsclient.DcsClient
+import se.gigurra.serviceutils.filemon.FileMonitor
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.service.{Responses, ServiceErrors, ServiceExceptionFilter}
 
@@ -16,6 +20,20 @@ case class RestService(config: Configuration,
                        clients: Map[String, DcsClient])
   extends Service[Request, Response]
     with ServiceErrors {
+
+  @volatile var staticData: StaticData = StaticData.readFromFile()
+  val staticDataUpdater = FileMonitor.apply(new File("static-data.json").toPath) { (_, event) =>
+    event.kind() match {
+      case StandardWatchEventKinds.ENTRY_CREATE | StandardWatchEventKinds.ENTRY_MODIFY => Try {
+          logger.info(s"Updating from changes in static-data.json ..")
+          staticData = StaticData.readFromFile()
+          logger.info(s"OK! (Updated successfully from changes in static-data.json)")
+      }.recover {
+        case NonFatal(e) => logger.error(e, s"Failed updating data from static-data.json .. $e")
+      }
+      case _ =>
+    }
+  }
 
   override def apply(request: Request) = ServiceExceptionFilter {
     request.method -> Path(request.path) match {
@@ -35,11 +53,11 @@ case class RestService(config: Configuration,
   }
 
   private def handleGetAllStaticData(request: Request): Future[Response] = {
-    Future(JSON.writeMap(StaticData.readFromFile().source).toResponse)
+    Future(JSON.writeMap(staticData.source).toResponse)
   }
 
   private def handleGetStaticData(request: Request, resource: String): Future[Response] = {
-    StaticData.readFromFile().source.get(resource) match {
+    staticData.source.get(resource) match {
       case Some(data) => Future(JSON.writeMap(data.asInstanceOf[Map[String, Any]]).toResponse)
       case None => Future(Responses.notFound(s"Resource static-data/$resource not found"))
     }
