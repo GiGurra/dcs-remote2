@@ -3,6 +3,8 @@
     "host"        : "build.culvertsoft.se",
     "port"        : 12340,
     "team"        : "BLUE_RABBITS",
-    "callsign"    : "JarJar"
+    "callsign"    : "JarJar",
+	"bingo"		  : 2500,
+	"joker"       : 5000
   }
 }
