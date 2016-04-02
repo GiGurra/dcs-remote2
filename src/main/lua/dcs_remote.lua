@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------
--------------------------------------------------  CFG PACKAGE PATH -------------------------------------------------
+-------------------------------------------------        CFG        -------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------
 
 local function addScriptDir(path)
@@ -12,30 +12,21 @@ addScriptDir(lfs.writedir() .. "/LuaSocket")
 addScriptDir(lfs.currentdir() .. "/Scripts")
 addScriptDir(lfs.currentdir() .. "/LuaSocket")
 
----------------------------------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------------------------------
------------------------------------------------------  IMPORTS ------------------------------------------------------
----------------------------------------------------------------------------------------------------------------------
-
 local JSON = require 'dkjson'
 local NETUTILS = require 'dcs_remote_net_utils'
 
----------------------------------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------------------------------
-----------------------------------------------------  DCS_REMOTE ----------------------------------------------------
----------------------------------------------------------------------------------------------------------------------
-
-local logFile = io.open(lfs.writedir().."/Logs/dcs_remote.log", "w")
-local clients = {}
+dcsRemote_logFile = nil
+dcsRemote_ServerSocket = nil
+dcsRemote_clients = {}
 
 ---------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------  FCNS --------------------------------------------------------
+-----------------------------------------------------  HELPERS ------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------
 
 local function log(txt)
-	logFile:write(txt .. "\n")
-    logFile:flush()
+	dcsRemote_logFile:write(txt .. "\n")
+    dcsRemote_logFile:flush()
 end
 
 local function log_err(txt)
@@ -45,7 +36,7 @@ end
 local function disconnect(client)
     if client then
         client:close()
-        clients[client] = nil
+        dcsRemote_clients[client] = nil
     end
 end
 
@@ -101,7 +92,7 @@ local function handleIncoming(client)
         local runnable, loadErr = loadstring(script)
         if runnable then
 
-            local status, pcallErr = pcall(function ()
+            local _, pcallErr = pcall(function ()
 
                 local result, errRes = runnable()
                 if not errRes then
@@ -147,10 +138,13 @@ end
 -----------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------  HOOKS -----------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------
-dcsRemote_ServerSocket = nil
 
 local oldLuaExportAfterNextFrame = LuaExportAfterNextFrame
 function LuaExportAfterNextFrame()
+
+    if not dcsRemote_logFile then
+        dcsRemote_logFile = io.open(lfs.writedir().."/Logs/dcs_remote.log", "w")
+    end
 
     if not dcsRemote_ServerSocket then
         dcsRemote_ServerSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(13465)))
@@ -162,10 +156,10 @@ function LuaExportAfterNextFrame()
     
     local newClient = dcsRemote_ServerSocket:accept()
     if newClient then
-        clients[newClient] = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(newClient))
+        dcsRemote_clients[newClient] = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(newClient))
     end
     
-    for client in pairs(shallowcopy(clients)) do
+    for client in pairs(shallowcopy(dcsRemote_clients)) do
         handleIncoming(client)
     end
 
@@ -177,7 +171,7 @@ function LuaExportStop()
         oldLuaExportStop() 
     end
     
-    for client in pairs(shallowcopy(clients)) do
+    for client in pairs(shallowcopy(dcsRemote_clients)) do
         disconnect(client)
     end
 
@@ -185,4 +179,10 @@ function LuaExportStop()
         dcsRemote_ServerSocket:close()
         dcsRemote_ServerSocket = nil
     end
+
+    if dcsRemote_logFile then
+        dcsRemote_logFile:close()
+        dcsRemote_logFile = nil
+    end
+
 end
