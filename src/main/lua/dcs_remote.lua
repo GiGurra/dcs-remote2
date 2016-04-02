@@ -142,6 +142,10 @@ end
 local oldLuaExportAfterNextFrame = LuaExportAfterNextFrame
 function LuaExportAfterNextFrame()
 
+    if oldLuaExportAfterNextFrame then
+        oldLuaExportAfterNextFrame()
+    end
+
     if not dcsRemote_logFile then
         dcsRemote_logFile = io.open(lfs.writedir().."/Logs/dcs_remote.log", "w")
     end
@@ -150,10 +154,6 @@ function LuaExportAfterNextFrame()
         dcsRemote_ServerSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(13465)))
     end
 
-    if oldLuaExportAfterNextFrame then 
-        oldLuaExportAfterNextFrame() 
-    end
-    
     local newClient = dcsRemote_ServerSocket:accept()
     if newClient then
         dcsRemote_clients[newClient] = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(newClient))
