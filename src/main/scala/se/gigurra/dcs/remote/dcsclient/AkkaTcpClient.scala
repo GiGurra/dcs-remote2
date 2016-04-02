@@ -90,7 +90,6 @@ class AkkaTcpClient(address: InetSocketAddress)
   }
 
   def bounce(request: Request): Unit = {
-    logger.warning(s"Not connected to dcs: Skipping request ${request.id}")
     system.scheduler.scheduleOnce(1 seconds) {
       request.promise.setException(unavailable(s"Not connected to dcs: Skipping request ${request.id}"))
     }
