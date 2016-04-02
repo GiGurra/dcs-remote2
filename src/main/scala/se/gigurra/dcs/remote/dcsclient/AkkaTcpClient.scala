@@ -8,7 +8,7 @@ import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.logging.Logging
-import se.gigurra.serviceutils.twitter.service.ServiceErrors
+import se.gigurra.serviceutils.twitter.service.ServiceErrorsWithoutAutoLogging
 
 import scala.collection.concurrent
 import scala.concurrent.duration.DurationInt
@@ -20,7 +20,7 @@ import scala.util.{Failure, Success, Try}
   */
 class AkkaTcpClient(address: InetSocketAddress)
   extends Actor
-    with ServiceErrors
+    with ServiceErrorsWithoutAutoLogging
     with Logging {
   import context.system
   implicit val _ec = system.dispatcher

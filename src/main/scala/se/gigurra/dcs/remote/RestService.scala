@@ -3,15 +3,15 @@ package se.gigurra.dcs.remote
 import java.io.File
 import java.nio.file.StandardWatchEventKinds
 
-import com.twitter.finagle.{Service, http}
-import com.twitter.finagle.http.path.{Path, Root, _}
 import com.twitter.finagle.http._
+import com.twitter.finagle.http.path.{Path, Root, _}
+import com.twitter.finagle.{Service, http}
 import com.twitter.util.{Future, NonFatal}
 import org.json4s.jackson.JsonMethods
 import se.gigurra.dcs.remote.dcsclient.DcsClient
 import se.gigurra.serviceutils.filemon.FileMonitor
 import se.gigurra.serviceutils.json.JSON
-import se.gigurra.serviceutils.twitter.service.{Responses, ServiceErrors, ServiceExceptionFilter}
+import se.gigurra.serviceutils.twitter.service.{Responses, ServiceErrorsWithoutAutoLogging, ServiceExceptionFilter}
 
 import scala.util.{Failure, Success, Try}
 
@@ -19,7 +19,7 @@ case class RestService(config: Configuration,
                        cache: ResourceCache,
                        clients: Map[String, DcsClient])
   extends Service[Request, Response]
-    with ServiceErrors {
+    with ServiceErrorsWithoutAutoLogging {
 
   @volatile var staticData: StaticData = StaticData.readFromFile()
   val staticDataUpdater = FileMonitor.apply(new File("static-data.json").toPath) { (_, event) =>
