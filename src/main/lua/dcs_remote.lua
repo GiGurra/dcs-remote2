@@ -147,25 +147,20 @@ end
 -----------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------  HOOKS -----------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------
-
-local oldLuaExportStart = LuaExportStart
-local serverSocket = {}
-function LuaExportStart()
-
-    if oldLuaExportStart then
-        oldLuaExportStart()
-    end
-
-    serverSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(13465)))
-end
+dcsRemote_ServerSocket = nil
 
 local oldLuaExportAfterNextFrame = LuaExportAfterNextFrame
 function LuaExportAfterNextFrame()
+
+    if not dcsRemote_ServerSocket then
+        dcsRemote_ServerSocket = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(NETUTILS.createServerSocket(13465)))
+    end
+
     if oldLuaExportAfterNextFrame then 
         oldLuaExportAfterNextFrame() 
     end
     
-    local newClient = serverSocket:accept()
+    local newClient = dcsRemote_ServerSocket:accept()
     if newClient then
         clients[newClient] = NETUTILS.enableTcpNoDelay(NETUTILS.setNonBlocking(newClient))
     end
@@ -186,5 +181,8 @@ function LuaExportStop()
         disconnect(client)
     end
 
-    serverSocket:close()
+    if dcsRemote_ServerSocket then
+        dcsRemote_ServerSocket:close()
+        dcsRemote_ServerSocket = nil
+    end
 end
