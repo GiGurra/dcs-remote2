@@ -18,6 +18,8 @@ local NETUTILS = require 'dcs_remote_net_utils'
 dcsRemote_logFile = nil
 dcsRemote_ServerSocket = nil
 dcsRemote_clients = {}
+dcsRemote_scriptCache = {}
+dcsRemote_scriptCache_maxSize = 10
 
 ---------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------
@@ -30,7 +32,41 @@ local function log(txt)
 end
 
 local function log_err(txt)
-	log("ERROR: " .. txt)
+    log("ERROR: " .. txt)
+end
+
+local function loadCachedScript(script)
+
+    if #dcsRemote_scriptCache >= dcsRemote_scriptCache_maxSize then
+
+        local minUseItem
+
+        for _, v in pairs(dcsRemote_scriptCache) do
+            if not minUseItem or v.executions < minUseItem.executions then
+                minUseItem = v
+            end
+        end
+
+        if minUseItem then
+            dcsRemote_scriptCache[minUseItem.script] = nil
+        end
+
+    end
+
+    local cached = dcsRemote_scriptCache[script]
+    if cached then
+        return cached
+    else
+        local runnable, loadErr = loadstring(script)
+        if runnable then
+            local newItem = { runnable = runnable, loadErr = loadErr, script = script, executions = 0 }
+            dcsRemote_scriptCache[script] = newItem
+            return newItem, nil
+        else
+            return nil, loadErr
+        end
+    end
+
 end
 
 local function disconnect(client)
@@ -71,59 +107,70 @@ local function send(client, msg, requestId)
     end
 end
 
-local function handleIncoming(client)
-    
-    local function processJson(msg)
-        
-        local lua, decodeErr = JSON.decode(msg)
-        if not lua then
-            log_err("failed to decode json from incoming message: " .. msg)
-            log_err(decodeErr)
-            return
+local function doExecute(client, cached, requestId)
+
+    cached.verifiedOk = false
+
+    local result, errRes = cached.runnable()
+
+    if not errRes then
+        cached.verifiedOk = true
+        cached.executions = cached.executions + 1
+        if result then
+            send(client, result, requestId)
+        else
+            send(client, { message = "No Content", source = cached.script }, requestId)
         end
-            
-        local script = lua["script"]
-        local requestId = lua["requestId"]
-        if not script then
-            log_err("No key named 'script' in incoming message: " .. msg)
-            return
-        end
+    else
+        send(client, { err = errRes }, requestId)
+        log_err("failed to execute script: " .. cached.script)
+        log_err(errRes)
+    end
 
-        local runnable, loadErr = loadstring(script)
-        if runnable then
+    return result, errRes
+end
 
-            local _, pcallErr = pcall(function ()
+local function processJson(client, msg)
 
-                local result, errRes = runnable()
-                if not errRes then
-                    if result then
-                        send(client, result, requestId)
-                    else
-                        send(client, { message = "No Content", source = script }, requestId)
-                    end
-                else
-                    send(client, { err = errRes }, requestId)
-                    log_err("failed to execute script: " .. script)
-                    log_err(errRes)
-                end
-            end)
+    local lua, decodeErr = JSON.decode(msg)
+    if not lua then
+        log_err("failed to decode json from incoming message: " .. msg)
+        log_err(decodeErr)
+        return
+    end
 
-            if pcallErr then
+    local script = lua["script"]
+    local requestId = lua["requestId"]
+    if not script then
+        log_err("No key named 'script' in incoming message: " .. msg)
+        return
+    end
+
+    local cached, loadErr = loadCachedScript(script)
+    if cached then
+
+        if cached.verifiedOk then
+            doExecute(client, cached, requestId)
+        else
+            local ok, pcallErr = pcall(doExecute, client, cached, requestId)
+            if not ok then
                 send(client, { err = pcallErr }, requestId)
                 log_err("failed to execute script: " .. script)
                 log_err(pcallErr)
             end
-
-        else
-            log_err("failed to load script: " .. script)
-            log_err(loadErr)
         end
+
+    else
+        log_err("failed to load script: " .. script)
+        log_err(loadErr)
     end
-    
+end
+
+local function handleIncoming(client)
     while client do
         local msg, err = client:receive()
         if msg then
-            processJson(msg)
+            processJson(client, msg)
         elseif err ~= 'timeout' then
             log_err("handleIncoming: " .. err)
             disconnect(client)
