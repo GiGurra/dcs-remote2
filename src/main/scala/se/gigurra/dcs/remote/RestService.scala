@@ -63,14 +63,10 @@ case class RestService(config: Configuration,
     }
   }
 
-  private def handleGetAllFromCache(request: Request,
-                                    env: String): Future[Response] = {
+  private def handleGetAllFromCache(request: Request, env: String): Future[Response] = {
 
-    val maxResourceAgeSeconds = getMaxCacheAge(request, 10.0)
-    val itemsRequested = cache.items
-        .filter(_.age <= maxResourceAgeSeconds)
-        .filter(_.id.split('/').head == env)
-        .map(item => s""""${item.id.substring(env.length+1)}":{"age":${item.age},"timestamp":${item.timestamp},"data":${item.data}}""")
+    val itemsRequested = cache.getCategory(env, getMaxCacheAge(request, 10.0))
+        .map(item => s""""${item.id}":{"age":${item.age},"timestamp":${item.timestamp},"data":${item.data}}""")
     val concatenatedJsonString = itemsRequested.mkString("{", ",", "}")
     Future(concatenatedJsonString.toResponse)
   }
@@ -79,13 +75,11 @@ case class RestService(config: Configuration,
                         env: String,
                         resource: String): Future[Response] = {
 
-    val maxResourceAgeSeconds = getMaxCacheAge(request, 0.04)
-    val id = idOf(env, resource)
-    cache.get(id, maxResourceAgeSeconds) match {
-      case Some(data) => Future.value(data.toResponse)
+    cache.get(env, resource, getMaxCacheAge(request, 0.04)) match {
+      case Some(data) => Future.value(data.data.toResponse)
       case None =>
         clientOf(env).get(resource).map { data =>
-          cache.put(id, data)
+          cache.put(env, resource, data)
           data.toResponse
         }
     }
@@ -94,12 +88,11 @@ case class RestService(config: Configuration,
   private def handleDelete(request: Request,
                            env: String,
                            resource: String): Future[Response] = {
-    val id = idOf(env, resource)
     (request.getBooleanParam("cache_only") match {
       case true => Future.Unit
       case false => clientOf(env).delete(resource)
     }).map { _ =>
-      cache.delete(id)
+      cache.delete(env, resource)
       Responses.ok(s"Resource $env/$resource deleted")
     }
   }
@@ -112,19 +105,13 @@ case class RestService(config: Configuration,
   private def handlePut(request: Request,
                         env: String,
                         resource: String): Future[Response] = {
-    val id = idOf(env, resource)
-
     Try(JsonMethods.parse(request.contentString)) match {
       case Success(_) =>
-        cache.put(id, request.contentString)
+        cache.put(env, resource, request.contentString)
         Responses.Ok(s"Resource stored in cache")
       case Failure(e) =>
         Responses.BadRequest(s"Malformated json content string")
     }
-  }
-
-  private def idOf(env: String, resource: String): String = {
-    s"$env/$resource"
   }
 
   private def clientOf(env: String): DcsClient = {

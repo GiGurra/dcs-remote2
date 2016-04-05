@@ -31,7 +31,7 @@ object DcsRemote extends Logging {
     if (config.show_tray_icon)
       TrayIcon.setup()
 
-    val cache = new ResourceCache(config.cache_size_mb)
+    val cache = ResourceCache(maxItemsPerCategory = 1000)
     val clients = DcsClient.createClients(config, config.connect_to_dcs)
     val restService = new RestService(config, cache, clients)
     val service = ExceptionFilter[Exception]() andThen restService

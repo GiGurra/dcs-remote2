@@ -33,7 +33,6 @@ object LuaEnvironmentMap extends Schema[LuaEnvironmentMap] {
 case class Configuration(source: SourceData = Map.empty)
   extends Parsed[Configuration.type] {
   val rest_port      = parse(schema.rest_port)
-  val cache_size_mb  = parse(schema.cache_size_mb)
   val connect_to_dcs = parse(schema.connect_to_dcs)
   val show_tray_icon = parse(schema.show_tray_icon)
   val mappings       = parse(schema.mappings)
@@ -41,7 +40,6 @@ case class Configuration(source: SourceData = Map.empty)
 
 object Configuration extends Schema[Configuration] with Logging {
   val rest_port      = required[Int]("rest_port", default = 12340)
-  val cache_size_mb  = required[Int]("cache_size_mb", default = 50)
   val connect_to_dcs = required[Boolean]("connect_to_dcs", default = true)
   val show_tray_icon = required[Boolean]("show_tray_icon", default = true)
   val mappings       = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))

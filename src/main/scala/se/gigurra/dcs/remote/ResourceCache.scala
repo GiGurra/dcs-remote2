@@ -2,56 +2,35 @@ package se.gigurra.dcs.remote
 
 import java.time.Instant
 
-import scala.collection.mutable
+import com.google.common.cache.CacheBuilder
+import com.google.common.cache.Cache
+import scala.collection.concurrent
+import scala.collection.JavaConversions._
 
-case class ResourceCache(_maxSizeMb: Int) {
-  val maxBytes: Long = _maxSizeMb.toLong * 1024L * 1024L
+case class ResourceCache(maxItemsPerCategory: Int) {
 
-  def put(id: String, data: String): Unit = synchronized {
+  private val categories = new concurrent.TrieMap[String, Cache[String, CacheItem]]
 
-    val item = CacheItem(id, data, time)
-
-    while(nonEmpty && (item.byteSize + byteSize > maxBytes))
-      deleteOldest()
-
-    add(item)
+  def put(category: String, id: String, data: String): Unit = {
+    categories.getOrElseUpdate(category, newCategory()).put(id, CacheItem(id, data, time))
   }
 
-  def get(id: String, maxAgeSeconds: Double): Option[String] = synchronized {
-    store.get(id).filter(_.age < maxAgeSeconds).map(_.data)
+  def get(category: String, id: String, maxAgeSeconds: Double): Option[CacheItem] = {
+    categories.get(category).flatMap(c => Option(c.getIfPresent(id))).filter(_.age <= maxAgeSeconds)
   }
 
-  def delete(id: String): Unit = synchronized {
-    store.remove(id).foreach(oldItem => _byteSize -= oldItem.byteSize)
+  def delete(category: String, id: String): Unit = {
+    categories.get(category).foreach(_.invalidate(id))
   }
 
-  def items: Array[CacheItem] = synchronized {
-    val out = new Array[CacheItem](store.size)
-    store.values.copyToArray(out)
-    out
+  def getCategory(category: String, maxAgeSeconds: Double): Seq[CacheItem] = {
+    categories.get(category).map { c =>
+      c.asMap().values().filter(_.age <= maxAgeSeconds).toSeq
+    }.getOrElse(Nil)
   }
 
-  def byteSize: Long =  synchronized {
-    _byteSize
-  }
-
-  def deleteOldest(): Unit = synchronized {
-    if (store.nonEmpty)
-      delete(store.head._1)
-  }
-
-  private def add(item: CacheItem): Unit = {
-    delete(item.id) // Must be done explicitly to preserve insertion order
-    store += item.id -> item
-    _byteSize += item.byteSize
-  }
-
-  private var _byteSize: Long = 0L
-  private def isEmpty: Boolean = store.isEmpty
-  private def nonEmpty: Boolean = !isEmpty
   private def time: Double = Instant.now.toEpochMilli.toDouble / 1000.0
-
-  private val store = new mutable.LinkedHashMap[String, CacheItem]()
+  private def newCategory() = CacheBuilder.newBuilder().maximumSize(maxItemsPerCategory).build[String, CacheItem]()
 }
 
 case class CacheItem(id: String, data: String, timestamp: Double) {
