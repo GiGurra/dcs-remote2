@@ -42,7 +42,7 @@ object DcsRemote extends Logging {
       .name("DCS Remote")
       .build(service)
 
-    if (Platform.isWindows) {
+    if (config.keybHook && Platform.isWindows) {
       val kbClient = KeyboardHandler(restService)
       KeyInput.enterKeyboardHookMessageLoop(kbClient.apply)
     }

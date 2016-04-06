@@ -2,6 +2,7 @@
   "rest_port": 12340,
   "connect_to_dcs": true,
   "show_tray_icon": true,
+  "use_windows_keyboard_hook": true,
   "mappings": [
     {
       "name": "export",

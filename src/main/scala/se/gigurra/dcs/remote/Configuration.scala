@@ -35,6 +35,7 @@ case class Configuration(source: SourceData = Map.empty)
   val rest_port      = parse(schema.rest_port)
   val connect_to_dcs = parse(schema.connect_to_dcs)
   val show_tray_icon = parse(schema.show_tray_icon)
+  val keybHook       = parse(schema.keybHook)
   val mappings       = parse(schema.mappings)
 }
 
@@ -42,6 +43,7 @@ object Configuration extends Schema[Configuration] with Logging {
   val rest_port      = required[Int]("rest_port", default = 12340)
   val connect_to_dcs = required[Boolean]("connect_to_dcs", default = true)
   val show_tray_icon = required[Boolean]("show_tray_icon", default = true)
+  val keybHook       = required[Boolean]("use_windows_keyboard_hook", default = true)
   val mappings       = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
 
   def readFromFile(s: String = "dcs-remote-cfg.json"): Configuration = {
