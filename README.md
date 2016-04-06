@@ -2,7 +2,7 @@
 
 * Provides a REST API with full script access to lua environments in DCS
 * Consists of a super thin lua script communicating with a REST Proxy written in Scala/Java.
-* Fast: Includes a built in cache (size configurable) in the REST proxy
+* Fast: Includes a built in cache in the REST proxy
     * Specify http parameter max_cached_age=<millis> to allow read from cache (default value 40 ms)
 * **NOTE: Don't export the REST Proxy or the thin lua layer ports online**
    * ANY script runnable by DCS can be injected :).
