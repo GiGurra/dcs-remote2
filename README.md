@@ -4,7 +4,7 @@
 * Consists of a super thin lua script communicating with a REST Proxy written in Scala/Java.
 * Fast: Includes a built in cache in the REST proxy
     * Specify http parameter max_cached_age=<millis> to allow read from cache (default value 40 ms)
-* **NOTE: Don't export the REST Proxy or the thin lua layer ports online**
+* **NOTE: Don't export the REST Proxy port online (default 12340)**
    * ANY script runnable by DCS can be injected :).
 * Use any browser or tool (e.g. postman) to test/experiment before/while building your mod
 
