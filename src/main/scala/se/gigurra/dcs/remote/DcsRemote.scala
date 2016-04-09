@@ -1,14 +1,15 @@
 package se.gigurra.dcs.remote
 
 import java.io.File
+import java.lang.management.ManagementFactory
 import java.net.InetSocketAddress
 
 import com.sun.jna.Platform
 import com.twitter.finagle.builder.ServerBuilder
-import com.twitter.finagle.http.{Method, Request, Http}
+import com.twitter.finagle.http.{Http, Method, Request}
 import com.twitter.util.Await
 import se.gigurra.dcs.remote.dcsclient.DcsClient
-import se.gigurra.dcs.remote.keyboard.{LLWindowsKeyboardEvent, KeyInput}
+import se.gigurra.dcs.remote.keyboard.{KeyInput, LLWindowsKeyboardEvent}
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.logging.{Capture, Logging}
 import se.gigurra.serviceutils.twitter.service.ExceptionFilter
@@ -21,6 +22,8 @@ object DcsRemote extends Logging {
 
     Capture.stdOutToFile(s"dcs-remote-debug-log.txt", append = true)
     Capture.stdErrToFile(s"dcs-remote-log.txt", append = true)
+
+    logSelectedGarbageCollectors()
 
     if (!new File("static-data.json").canRead)
       throw new RuntimeException(s"Could not open configuration file file 'static-data.json'")
@@ -56,6 +59,12 @@ object DcsRemote extends Logging {
       System.exit(1)
   }
 
+  def logSelectedGarbageCollectors(): Unit = {
+    import scala.collection.JavaConversions._
+    for (gcMxBean <- ManagementFactory.getGarbageCollectorMXBeans) {
+      logger.info(s"Using GC: ${gcMxBean.getName}/${gcMxBean.getObjectName}")
+    }
+  }
 
   case class KeyboardHandler(restService: RestService) {
     def apply(event: LLWindowsKeyboardEvent): Unit = {
