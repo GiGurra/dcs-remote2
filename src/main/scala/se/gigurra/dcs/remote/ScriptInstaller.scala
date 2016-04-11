@@ -3,6 +3,8 @@ package se.gigurra.dcs.remote
 import java.io.File
 import java.nio.file.{Files, StandardOpenOption}
 
+import com.sun.jna.platform.win32.{Guid, Shell32}
+import com.sun.jna.ptr.PointerByReference
 import com.twitter.io.Charsets
 import se.gigurra.serviceutils.twitter.logging.Logging
 
@@ -27,11 +29,8 @@ object ScriptInstaller extends Logging {
 
     val sources = srcFiles.map(fileName => fileName -> resource2String(s"lua/$fileName"))
     val exportLuaLine = resource2String(s"lua/$exportLuaFileName").lines.toSeq.head
-
-    val homeDir = getHomeDir
-    val saveGamesDir = ensureSavedGamesDir(homeDir)
-    val defaultDcsDir = ensureDefaultDcsDir(saveGamesDir)
-    val dcsDirs = ensureDcsDirs(saveGamesDir, defaultDcsDir)
+    val defaultDcsDir = ensureDefaultDcsDir(savedGamesFolder)
+    val dcsDirs = ensureDcsDirs(savedGamesFolder, defaultDcsDir)
 
     for (dcsDir <- dcsDirs) {
       logger.info(s" --> Installing dcs remote into: $dcsDir")
@@ -51,13 +50,14 @@ object ScriptInstaller extends Logging {
     saveGamesDir.listFiles().filter(_.isDirectory).filter(_.getName.startsWith("DCS")).toSet ++ Set(defaultDcsDir)
   }
 
-  def getHomeDir: String = {
-    logger.info(s"Looking for home directory ..")
-    val homeDir = System.getProperty("user.home")
-    if (homeDir == null)
-      throw new RuntimeException(s"Unable to find user's home dir")
-    logger.info(s"Found home dir at $homeDir")
-    homeDir
+  lazy val savedGamesFolder: File = {
+    val guid = Guid.GUID.fromString("4C5C32FF-BB9D-43b0-B5B4-2D72E54EAAA4")
+    val ptrByRef = new PointerByReference()
+    val result = Shell32.INSTANCE.SHGetKnownFolderPath(guid, 0, null, ptrByRef)
+    if (result.intValue() == 0)
+      new File(ptrByRef.getValue.getWideString(0))
+    else
+      throw new RuntimeException(s"Failed to find Saved Games folder")
   }
 
   def ensureDefaultDcsDir(saveGamesDir: File): File = {
@@ -65,13 +65,6 @@ object ScriptInstaller extends Logging {
     if (!defaultDcsDir.exists() && !defaultDcsDir.mkdir())
       throw new RuntimeException(s"Unable to create dcs default dir")
     defaultDcsDir
-  }
-
-  def ensureSavedGamesDir(homeDir: String): File = {
-    val saveGamesDir = new File(s"$homeDir/Saved Games")
-    if (!saveGamesDir.exists())
-      throw new RuntimeException(s"Unable to find user's Saved Games dir")
-    saveGamesDir
   }
 
   def ensureScriptFiles(sources: Seq[(String, String)], ScriptsDir: File): Unit = {
