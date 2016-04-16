@@ -12,6 +12,10 @@ local utils = {
         return socket
     end,
 
+    getTime = function()
+        return SOCKET.gettime()
+    end,
+
     createServerSocket = function(port)
         return assert(SOCKET.bind("127.0.0.1", port))
     end

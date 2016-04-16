@@ -96,9 +96,21 @@ local function send(client, msg, requestId)
         if requestId then 
             msg.requestId = requestId 
         end
-        
-        local json = JSON.encode(msg) 
-        
+
+        local json = ""
+
+        local t0 = NETUTILS.getTime()
+        for i=1,10 do
+            json = JSON.encode(msg)
+        end
+        local t1 = NETUTILS.getTime()
+        local dt = t1 - t0
+
+        msg.t0 = t0
+        msg.t1 = t1
+        msg.dt = dt
+        json = JSON.encode(msg)
+
         local ok, err = client:send(json .. "\n")
         if not ok and err ~= 'timeout' then
             log_err("send: " .. err)
