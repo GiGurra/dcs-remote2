@@ -122,7 +122,8 @@ case class RestService(config: Configuration,
     def toResponse: Response = {
       val response = http.Response(Version.Http11, Status.Ok)
       response.setContentTypeJson()
-      response.setContentString(str)
+      response.contentString = str
+      response.contentLength = response.content.length
       response
     }
   }
