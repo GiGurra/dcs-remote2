@@ -6,6 +6,7 @@ import akka.actor._
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
+import com.fasterxml.jackson.core.{JsonFactory, JsonToken}
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.logging.Logging
 import se.gigurra.serviceutils.twitter.service.ServiceErrorsWithoutAutoLogging
@@ -26,6 +27,7 @@ class AkkaTcpClient(address: InetSocketAddress)
   implicit val _ec = system.dispatcher
   val pendingRequests = new concurrent.TrieMap[String, Request]()
   val lineBuffer = new LineSplitter
+  val saxParserFactory = new JsonFactory()
   connect()
 
   ////////////////////////////////////////////////////
@@ -78,8 +80,8 @@ class AkkaTcpClient(address: InetSocketAddress)
       val lines = lineBuffer.apply(buffer)
       lines foreach { line =>
         Try {
-          val reply = JSON.read[Reply](line)
-          pendingRequests.remove(reply.requestId).foreach { request =>
+          val requestId = saxParseGetRequestId(line)
+          pendingRequests.remove(requestId).foreach { request =>
             request.promise.setValue(line)
           }
         } match {
@@ -103,6 +105,27 @@ class AkkaTcpClient(address: InetSocketAddress)
 
   def connect(): Unit = {
     system.scheduler.scheduleOnce(1 seconds)(IO(Tcp) ! Connect(address))
+  }
+
+  def saxParseGetRequestId(line: String): String = {
+
+    val saxParser = saxParserFactory.createParser(line)
+    var requestId: Option[String] = None
+
+    if (saxParser.nextToken() != JsonToken.START_OBJECT)
+      throw new RuntimeException(s"Unable to parse Json from DCS: $line")
+
+    while (requestId.isEmpty && saxParser.nextToken() != JsonToken.END_OBJECT) {
+      val fieldName = saxParser.getCurrentName
+      saxParser.nextToken() // move from field name to field value
+      if (fieldName == "requestId") {
+        requestId = Some(saxParser.getValueAsString)
+      } else {
+        saxParser.skipChildren()
+      }
+    }
+
+    requestId.getOrElse(throw new RuntimeException("Could not find .requestId field in response from DCS!"))
   }
 }
 
