@@ -6,6 +6,8 @@ val dcs_remote = Project(id = "dcs-remote", base = file("."))
     scalaVersion := "2.11.8",
     scalacOptions ++= Seq("-feature", "-unchecked", "-deprecation"),
 
+    mainClass in assembly := Some("se.gigurra.dcs.remote.DcsRemote"),
+
     libraryDependencies ++= Seq(
       "com.typesafe.akka"     % "akka-actor_2.11"         % "2.4.2",
       "net.java.dev.jna"      %   "jna-platform"          % "4.2.2",

@@ -3,15 +3,17 @@ package se.gigurra.dcs.remote.dcsclient
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
-import java.nio.charset.Charset
 import java.util
+
+import com.twitter.io.Charsets
+
+import scala.collection.mutable.ArrayBuffer
 
 class LineSplitter {
 
-  private val charset = Charset.forName("UTF-8")
-
   object buffer extends ByteArrayOutputStream() {
     def data: Array[Byte] = buf
+    def setSize(n: Int): Unit = count = n
     val channel = Channels.newChannel(this)
   }
 
@@ -19,16 +21,34 @@ class LineSplitter {
 
     buffer.channel.write(newData)
 
-    val i = LastIndexOfNewline.find(buffer.data, buffer.size) // Dont search whole buffer!
-    if (i >= 0) {
-      val linesBuffer = util.Arrays.copyOfRange(buffer.data, 0, i)
-      val remain = util.Arrays.copyOfRange(buffer.data, i+1, buffer.size)
-      buffer.reset()
-      buffer.write(remain)
-      new String(linesBuffer, charset).lines.toSeq
-    } else {
-      Seq.empty
+    // Flush out new lines
+    val out = new ArrayBuffer[String]
+
+    var i = 0
+    var offs = 0
+    while (i < buffer.size) {
+      val c = buffer.data(i)
+      if (c == '\n') {
+        out += new String(util.Arrays.copyOfRange(buffer.data, offs, i), Charsets.Utf8)
+        i += 1
+        offs = i
+      }
+
+      i += 1
     }
+
+    // Shove back data
+    val nLeft = buffer.size() - offs
+    System.arraycopy(buffer.data, offs, buffer.data, 0, nLeft)
+    buffer.setSize(nLeft)
+
+    // Clean up
+    out map { line =>
+      if (line.contains('\n'))
+        line filter (_ != '\n')
+      else
+        line
+    } filter (_.nonEmpty)
   }
 
   def apply(newData: Array[Byte], n: Int): Seq[String] = {
@@ -39,4 +59,12 @@ class LineSplitter {
     buffer.reset()
   }
 
+}
+
+object LineSplitterTest {
+  def main(args: Array[String]): Unit = {
+    val data = ByteBuffer.wrap("\n\n\nabc\nadsegh\n\n123\n".getBytes(Charsets.Utf8))
+    val result = new LineSplitter().apply(data)
+    println(result)
+  }
 }
