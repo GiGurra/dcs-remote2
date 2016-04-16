@@ -74,17 +74,19 @@ class AkkaTcpClient(address: InetSocketAddress)
   }
 
   def received(data: ByteString): Unit = {
-    val lines = lineBuffer.apply(data.asByteBuffer)
-    lines foreach { line =>
-      Try {
-        val reply = JSON.read[Reply](line)
-        pendingRequests.remove(reply.requestId).foreach { request =>
-          request.promise.setValue(line)
+    for (buffer <- data.asByteBuffers) {
+      val lines = lineBuffer.apply(buffer)
+      lines foreach { line =>
+        Try {
+          val reply = JSON.read[Reply](line)
+          pendingRequests.remove(reply.requestId).foreach { request =>
+            request.promise.setValue(line)
+          }
+        } match {
+          case Success(result) =>
+          case Failure(e) =>
+            logger.error(e, s"Unable to handle reply from DCS")
         }
-      } match {
-        case Success(result) =>
-        case Failure(e) =>
-          logger.error(e, s"Unable to handle reply from DCS")
       }
     }
   }
