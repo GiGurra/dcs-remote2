@@ -58,43 +58,50 @@ case class RestService(config: Configuration,
   }
 
   private def handleGetAllFromCache(request: Request, env: String): Future[Response] = {
-    import jsonBytes._
 
-    val buffer = buffers.get()
-    buffer.reset()
+    if (env == "keyboard" && config.relay.isDefined) {
+      clientOf(env).get(request, env).map(_.toResponse)
 
-    def writeKeyBytes(name: Array[Byte], prependComma: Boolean, addQuotes: Boolean): Unit = {
-      if (prependComma)
-        buffer.write(COMMA)
-      if (addQuotes)
-        buffer.write(QUOTE)
-      buffer.write(name)
-      if (addQuotes)
-        buffer.write(QUOTE)
-      buffer.write(COLON)
-    }
+    } else {
 
-    def writeKeyString(name: String, prependComma: Boolean, addQuotes: Boolean): Unit = writeKeyBytes(name.utf8, prependComma, addQuotes)
-    def writeNumericValue(v: Number): Unit = buffer.write(v.toString.utf8)
+      import jsonBytes._
 
-    val itemsRequested = cache.getCategory(env, getMaxCacheAge(request, 10.0))
-    var iItem = 0
-    buffer.write(BEGIN_OBJECT)
-    itemsRequested.foreach { item =>
-      writeKeyString(item.id, prependComma = iItem > 0, addQuotes = true)
+      val buffer = buffers.get()
+      buffer.reset()
+
+      def writeKeyBytes(name: Array[Byte], prependComma: Boolean, addQuotes: Boolean): Unit = {
+        if (prependComma)
+          buffer.write(COMMA)
+        if (addQuotes)
+          buffer.write(QUOTE)
+        buffer.write(name)
+        if (addQuotes)
+          buffer.write(QUOTE)
+        buffer.write(COLON)
+      }
+
+      def writeKeyString(name: String, prependComma: Boolean, addQuotes: Boolean): Unit = writeKeyBytes(name.utf8, prependComma, addQuotes)
+      def writeNumericValue(v: Number): Unit = buffer.write(v.toString.utf8)
+
+      val itemsRequested = cache.getCategory(env, getMaxCacheAge(request, 10.0))
+      var iItem = 0
       buffer.write(BEGIN_OBJECT)
-      writeKeyBytes(AGE, prependComma = false, addQuotes = false)
-      writeNumericValue(item.age)
-      writeKeyBytes(TIMESTAMP, prependComma = true, addQuotes = false)
-      writeNumericValue(item.timestamp)
-      writeKeyBytes(DATA, prependComma = true, addQuotes = false)
-      buffer.write(item.data)
+      itemsRequested.foreach { item =>
+        writeKeyString(item.id, prependComma = iItem > 0, addQuotes = true)
+        buffer.write(BEGIN_OBJECT)
+        writeKeyBytes(AGE, prependComma = false, addQuotes = false)
+        writeNumericValue(item.age)
+        writeKeyBytes(TIMESTAMP, prependComma = true, addQuotes = false)
+        writeNumericValue(item.timestamp)
+        writeKeyBytes(DATA, prependComma = true, addQuotes = false)
+        buffer.write(item.data)
+        buffer.write(END_OBJECT)
+        iItem += 1
+      }
       buffer.write(END_OBJECT)
-      iItem += 1
-    }
-    buffer.write(END_OBJECT)
 
-    Future(Buf.ByteArray.Owned(buffer.toByteArray).toResponse)
+      Future(Buf.ByteArray.Owned(buffer.toByteArray).toResponse)
+    }
   }
 
   private def handleGet(request: Request,
