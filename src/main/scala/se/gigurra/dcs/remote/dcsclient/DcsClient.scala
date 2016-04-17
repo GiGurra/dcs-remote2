@@ -2,6 +2,7 @@ package se.gigurra.dcs.remote.dcsclient
 
 import java.net.InetSocketAddress
 
+import com.twitter.io.Buf
 import com.twitter.util.Future
 import se.gigurra.dcs.remote.Configuration
 import se.gigurra.serviceutils.twitter.logging.Logging
@@ -11,13 +12,13 @@ case class DcsClient(name: String, port: Int) {
   private val addr = new InetSocketAddress("127.0.0.1", port)
   private val client = AkkaTcpClient.apply(addr)
 
-  private def request(s: String): Future[String] = {
+  private def request(s: String): Future[Buf] = {
     val request = Request(s)
     client ! request
     request.reply
   }
 
-  def get(luaMethod: String): Future[String] = {
+  def get(luaMethod: String): Future[Buf] = {
     request(s"return $luaMethod")
   }
 
