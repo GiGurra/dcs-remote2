@@ -83,6 +83,7 @@ object ScriptInstaller extends Logging {
 
       if (needsOverwrite) {
         logger.info(s"Need to update $trgFile, doing it ..")
+        Files.deleteIfExists(trgFile.toPath)
         Files.write(trgFile.toPath, desiredContents.getBytes(Charsets.Utf8), StandardOpenOption.WRITE)
       } else {
         logger.info(s"No need to update $trgFile ..")
