@@ -109,22 +109,20 @@ class AkkaTcpClient(address: InetSocketAddress)
   def saxParseGetRequestId(line: Array[Byte]): String = {
 
     val saxParser = saxParserFactory.createParser(line)
-    var requestId: Option[String] = None
 
     if (saxParser.nextToken() != JsonToken.START_OBJECT)
       throw new RuntimeException(s"Unable to parse Json from DCS: $line")
 
-    while (requestId.isEmpty && saxParser.nextToken() != JsonToken.END_OBJECT) {
-      val fieldName = saxParser.getCurrentName
-      saxParser.nextToken() // move from field name to field value
-      if (fieldName == "requestId") {
-        requestId = Some(saxParser.getValueAsString)
+    while (saxParser.nextToken() != null) {
+      saxParser.nextToken() // move from key to value
+      if (saxParser.getCurrentName == "requestId") {
+        return saxParser.getValueAsString
       } else {
         saxParser.skipChildren()
       }
     }
 
-    requestId.getOrElse(throw new RuntimeException("Could not find .requestId field in response from DCS!"))
+    throw new RuntimeException("Could not find .requestId field in response from DCS!")
   }
 }
 
