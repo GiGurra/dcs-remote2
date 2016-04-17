@@ -4,6 +4,8 @@ import java.time.Instant
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.Cache
+import com.twitter.io.Buf
+
 import scala.collection.concurrent
 import scala.collection.JavaConversions._
 
@@ -11,7 +13,7 @@ case class ResourceCache(maxItemsPerCategory: Int) {
 
   private val categories = new concurrent.TrieMap[String, Cache[String, CacheItem]]
 
-  def put(category: String, id: String, data: String): Unit = {
+  def put(category: String, id: String, data: Buf): Unit = {
     categories.getOrElseUpdate(category, newCategory()).put(id, CacheItem(id, data, time))
   }
 
@@ -33,8 +35,7 @@ case class ResourceCache(maxItemsPerCategory: Int) {
   private def newCategory() = CacheBuilder.newBuilder().maximumSize(maxItemsPerCategory).build[String, CacheItem]()
 }
 
-case class CacheItem(id: String, data: String, timestamp: Double) {
+case class CacheItem(id: String, data: Buf, timestamp: Double) {
   def age: Double = time - timestamp
-  val byteSize: Long = data.length * 2
   private def time: Double = Instant.now.toEpochMilli.toDouble / 1000.0
 }

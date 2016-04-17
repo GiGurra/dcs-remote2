@@ -7,6 +7,7 @@ import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import com.fasterxml.jackson.core.{JsonFactory, JsonToken}
+import com.twitter.io.Buf
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.logging.Logging
 import se.gigurra.serviceutils.twitter.service.ServiceErrorsWithoutAutoLogging
@@ -76,19 +77,17 @@ class AkkaTcpClient(address: InetSocketAddress)
   }
 
   def received(data: ByteString): Unit = {
-    for (buffer <- data.asByteBuffers) {
-      val lines = lineBuffer.apply(buffer)
-      lines foreach { line =>
-        Try {
-          val requestId = saxParseGetRequestId(line)
-          pendingRequests.remove(requestId).foreach { request =>
-            request.promise.setValue(line)
-          }
-        } match {
-          case Success(result) =>
-          case Failure(e) =>
-            logger.error(e, s"Unable to handle reply from DCS")
+    val lines = lineBuffer.apply(data.asByteBuffers)
+    lines foreach { line =>
+      Try {
+        val requestId = saxParseGetRequestId(line)
+        pendingRequests.remove(requestId).foreach { request =>
+          request.promise.setValue(Buf.ByteArray.Owned(line))
         }
+      } match {
+        case Success(result) =>
+        case Failure(e) =>
+          logger.error(e, s"Unable to handle reply from DCS")
       }
     }
   }
@@ -107,7 +106,7 @@ class AkkaTcpClient(address: InetSocketAddress)
     system.scheduler.scheduleOnce(1 seconds)(IO(Tcp) ! Connect(address))
   }
 
-  def saxParseGetRequestId(line: String): String = {
+  def saxParseGetRequestId(line: Array[Byte]): String = {
 
     val saxParser = saxParserFactory.createParser(line)
     var requestId: Option[String] = None
