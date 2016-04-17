@@ -60,7 +60,8 @@ case class RestService(config: Configuration,
   private def handleGetAllFromCache(request: Request, env: String): Future[Response] = {
 
     if (env == "keyboard" && config.relay.isDefined) {
-      clientOf(env).get(request, env).map(_.toResponse)
+      val client = clients.values.headOption.getOrElse(throw new RuntimeException("No relay client defined"))
+      client.get(request, env).map(_.toResponse)
 
     } else {
 
