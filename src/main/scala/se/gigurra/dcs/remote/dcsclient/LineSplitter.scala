@@ -17,9 +17,10 @@ class LineSplitter {
     val channel = Channels.newChannel(this)
   }
 
-  def apply(newData: ByteBuffer): Seq[Array[Byte]] = {
+  def apply(newDatas: Iterable[ByteBuffer]): Seq[Array[Byte]] = {
 
-    buffer.channel.write(newData)
+    for (newData <- newDatas)
+      buffer.channel.write(newData)
 
     // Flush out new lines
     val out = new ArrayBuffer[Array[Byte]]
@@ -49,10 +50,6 @@ class LineSplitter {
       else
         line
     } filter (_.nonEmpty)
-  }
-
-  def apply(newData: Array[Byte], n: Int): Seq[Array[Byte]] = {
-    apply(ByteBuffer.wrap(newData, 0, n))
   }
 
   def clear(): Unit = {
