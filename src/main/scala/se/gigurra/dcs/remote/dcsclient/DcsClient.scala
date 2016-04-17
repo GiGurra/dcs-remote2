@@ -6,7 +6,8 @@ import com.twitter.io.Buf
 import com.twitter.util.Future
 import se.gigurra.dcs.remote.{Configuration, RelayConfig}
 import se.gigurra.serviceutils.twitter.logging.Logging
-import com.twitter.finagle.http.{Request => FinagleRequest}
+import com.twitter.finagle.http.{Response, Request => FinagleRequest}
+import se.gigurra.serviceutils.twitter.service.ServiceException
 
 trait DcsClient {
   def get(originalRequest: FinagleRequest, luaMethod: String): Future[Buf]
@@ -45,17 +46,46 @@ case class DcsClientRelayed(cfg: RelayConfig) extends DcsClient with Logging {
 
   override def get(req: FinagleRequest, luaMethod: String): Future[Buf] = {
     req.host = cfg.host
-    service.apply(req).map(_.content)
+    service.apply(req).map {
+      case OkResponse(response) => response.content
+      case BadResponse(response) => throw ServiceException(response)
+    }
   }
 
   override def delete(req: FinagleRequest, luaMethod: String): Future[Unit] = {
     req.host = cfg.host
-    service.apply(req).unit
+    service.apply(req).map {
+      case OkResponse(response) =>
+      case BadResponse(response) => throw ServiceException(response)
+    }
   }
 
   override def post(req: FinagleRequest, script: String): Future[Unit] = {
     req.host = cfg.host
-    service.apply(req).unit
+    service.apply(req).map {
+      case OkResponse(response) =>
+      case BadResponse(response) => throw ServiceException(response)
+    }
+  }
+}
+
+object OkResponse {
+  def unapply(r: Response): Option[Response] = {
+    if (r.status.code < 300) {
+      Some(r)
+    } else {
+      None
+    }
+  }
+}
+
+object BadResponse {
+  def unapply(r: Response): Option[Response] = {
+    if (r.status.code >= 300) {
+      Some(r)
+    } else {
+      None
+    }
   }
 }
 

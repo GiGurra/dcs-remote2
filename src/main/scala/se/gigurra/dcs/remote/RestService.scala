@@ -48,22 +48,36 @@ case class RestService(config: Configuration,
   }
 
   private def handleGetAllStaticData(request: Request): Future[Response] = {
-    Future(staticData.allStaticDataAsBytes.toResponse)
+    if (isRelay) {
+      relayClient.get(request, "").map(_.toResponse)
+    } else {
+      Future(staticData.allStaticDataAsBytes.toResponse)
+    }
   }
 
   private def handleGetStaticData(request: Request, resource: String): Future[Response] = {
-    staticData.staticDataByteMap.get(resource) match {
-      case Some(buf) => Future(buf.toResponse)
-      case None => Future(Responses.notFound(s"Resource static-data/$resource not found"))
+    if (isRelay) {
+      relayClient.get(request, resource).map(_.toResponse)
+    } else {
+      staticData.staticDataByteMap.get(resource) match {
+        case Some(buf) => Future(buf.toResponse)
+        case None => Future(Responses.notFound(s"Resource static-data/$resource not found"))
+      }
     }
+  }
+
+  private def isRelay: Boolean = {
+    config.relay.isDefined
+  }
+
+  private def relayClient: DcsClient = {
+    clients.values.headOption.getOrElse(throw new RuntimeException("No relay client defined"))
   }
 
   private def handleGetAllFromCache(request: Request, env: String): Future[Response] = {
 
-    if (env == "keyboard" && config.relay.isDefined) {
-      val client = clients.values.headOption.getOrElse(throw new RuntimeException("No relay client defined"))
-      client.get(request, env).map(_.toResponse)
-
+    if (env == "keyboard" && isRelay) {
+      relayClient.get(request, env).map(_.toResponse)
     } else {
 
       import jsonBytes._
@@ -149,7 +163,11 @@ case class RestService(config: Configuration,
   }
 
   private def clientOf(env: String): DcsClient = {
-    clients.getOrElse(env, throw notFound(s"No dcs client configured to environment named $env. Check your DcsRemote configuration"))
+    if (isRelay) {
+      relayClient
+    } else {
+      clients.getOrElse(env, throw notFound(s"No dcs client configured to environment named $env. Check your DcsRemote configuration"))
+    }
   }
 
   implicit class RichJsonString(val data: Buf) {
