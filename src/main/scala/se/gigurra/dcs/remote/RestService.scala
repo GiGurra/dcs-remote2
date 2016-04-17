@@ -16,6 +16,7 @@ import se.gigurra.serviceutils.twitter.service.{Responses, ServiceErrorsWithoutA
 
 import scala.util.Try
 import RestService._
+import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.databind.ObjectMapper
 import se.gigurra.dcs.remote.util.FastByteArrayOutputStream
 
@@ -184,8 +185,12 @@ case class RestService(config: Configuration,
   def validJson(buf: Buf): Boolean = {
     try {
       val parser = mapper.getFactory.createParser(Buf.ByteArray.Owned.extract(buf))
-      while (parser.nextToken() != null) {}
-      true
+      if (parser.nextToken() == JsonToken.START_OBJECT) {
+        while (parser.nextToken() != null) {}
+        true
+      } else {
+        false
+      }
     } catch {
       case NonFatal(e) =>
         false
