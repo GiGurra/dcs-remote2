@@ -3,7 +3,7 @@
     "host"        : "build.culvertsoft.se",
     "port"        : 12340,
     "team"        : "BLUE_RABBITS",
-    "callsign"    : "YD-Yoda"
+    "callsign"    : "JarJar"
   },
   "mission-settings" : {
     "bingo" : 2500,
