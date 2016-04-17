@@ -104,7 +104,7 @@ case class RestService(config: Configuration,
     cache.get(env, resource, getMaxCacheAge(request, 0.04)) match {
       case Some(data) => Future.value(data.data.toResponse)
       case None =>
-        clientOf(env).get(resource).map { data =>
+        clientOf(env).get(request, resource).map { data =>
           cache.put(env, resource, data)
           data.toResponse
         }
@@ -116,7 +116,7 @@ case class RestService(config: Configuration,
                            resource: String): Future[Response] = {
     (request.getBooleanParam("cache_only") match {
       case true => Future.Unit
-      case false => clientOf(env).delete(resource)
+      case false => clientOf(env).delete(request, resource)
     }).map { _ =>
       cache.delete(env, resource)
       Responses.ok(s"Resource $env/$resource deleted")
@@ -125,7 +125,7 @@ case class RestService(config: Configuration,
 
   private def handlePost(request: Request,
                          env: String): Future[Response] = {
-    clientOf(env).post(request.contentString).map (_ => Responses.ok(s"Resource added"))
+    clientOf(env).post(request, request.contentString).map (_ => Responses.ok(s"Resource added"))
   }
 
   private def handlePut(request: Request,
@@ -184,6 +184,9 @@ case class RestService(config: Configuration,
     }
   }
 
+  private def makeRelay(config: Configuration): Option[Service[Request, Response]] = {
+    config.relay.map(cfg => com.twitter.finagle.Http.client.newService(s"${cfg.host}:${cfg.port}"))
+  }
 }
 
 object RestService {

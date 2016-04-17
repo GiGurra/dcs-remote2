@@ -19,6 +19,17 @@ object StaticData extends Schema[StaticData] {
   }
 }
 
+case class RelayConfig(source: SourceData = Map.empty)
+  extends Parsed[RelayConfig.type] {
+  val host  = parse(schema.host)
+  val port  = parse(schema.port)
+}
+
+object RelayConfig extends Schema[RelayConfig] {
+  val host  = required[String]("host")
+  val port  = required[Int]("port", default = 12340)
+}
+
 case class LuaEnvironmentMap(source: SourceData = Map.empty)
   extends Parsed[LuaEnvironmentMap.type] {
   val name  = parse(schema.name)
@@ -37,6 +48,7 @@ case class Configuration(source: SourceData = Map.empty)
   val show_tray_icon = parse(schema.show_tray_icon)
   val keybHook       = parse(schema.keybHook)
   val mappings       = parse(schema.mappings)
+  val relay          = parse(schema.relay)
 }
 
 object Configuration extends Schema[Configuration] with Logging {
@@ -45,6 +57,7 @@ object Configuration extends Schema[Configuration] with Logging {
   val show_tray_icon = required[Boolean]("show_tray_icon", default = true)
   val keybHook       = required[Boolean]("use_windows_keyboard_hook", default = true)
   val mappings       = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
+  val relay          = optional[RelayConfig]("relay")
 
   def readFromFile(s: String = "dcs-remote-cfg.json"): Configuration = {
     logger.info(s"Loading configuration file: $s")
