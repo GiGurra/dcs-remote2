@@ -189,10 +189,6 @@ end
 local oldLuaExportAfterNextFrame = LuaExportAfterNextFrame
 function LuaExportAfterNextFrame()
 
-    if oldLuaExportAfterNextFrame then
-        oldLuaExportAfterNextFrame()
-    end
-
     if not dcsRemote_logFile then
         dcsRemote_logFile = io.open(lfs.writedir().."/Logs/dcs_remote.log", "w")
     end
@@ -210,13 +206,13 @@ function LuaExportAfterNextFrame()
         handleIncoming(client)
     end
 
+    if oldLuaExportAfterNextFrame then
+        oldLuaExportAfterNextFrame()
+    end
 end
 
 local oldLuaExportStop = LuaExportStop
 function LuaExportStop()
-    if oldLuaExportStop then 
-        oldLuaExportStop() 
-    end
     
     for client in pairs(shallowcopy(dcsRemote_clients)) do
         disconnect(client)
@@ -232,4 +228,7 @@ function LuaExportStop()
         dcsRemote_logFile = nil
     end
 
+    if oldLuaExportStop then
+        oldLuaExportStop()
+    end
 end
