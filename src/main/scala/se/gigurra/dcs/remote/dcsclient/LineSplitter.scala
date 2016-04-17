@@ -17,19 +17,19 @@ class LineSplitter {
     val channel = Channels.newChannel(this)
   }
 
-  def apply(newData: ByteBuffer): Seq[String] = {
+  def apply(newData: ByteBuffer): Seq[Array[Byte]] = {
 
     buffer.channel.write(newData)
 
     // Flush out new lines
-    val out = new ArrayBuffer[String]
+    val out = new ArrayBuffer[Array[Byte]]
 
     var i = 0
     var offs = 0
     while (i < buffer.size) {
       val c = buffer.data(i)
       if (c == '\n') {
-        out += new String(util.Arrays.copyOfRange(buffer.data, offs, i), Charsets.Utf8)
+        out += util.Arrays.copyOfRange(buffer.data, offs, i)
         i += 1
         offs = i
       }
@@ -51,7 +51,7 @@ class LineSplitter {
     } filter (_.nonEmpty)
   }
 
-  def apply(newData: Array[Byte], n: Int): Seq[String] = {
+  def apply(newData: Array[Byte], n: Int): Seq[Array[Byte]] = {
     apply(ByteBuffer.wrap(newData, 0, n))
   }
 
@@ -61,10 +61,11 @@ class LineSplitter {
 
 }
 
+/*
 object LineSplitterTest {
   def main(args: Array[String]): Unit = {
     val data = ByteBuffer.wrap("\n\n\nabc\nadsegh\n\n123\n".getBytes(Charsets.Utf8))
     val result = new LineSplitter().apply(data)
     println(result)
   }
-}
+}*/
