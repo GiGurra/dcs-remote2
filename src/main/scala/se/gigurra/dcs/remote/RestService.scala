@@ -8,15 +8,15 @@ import com.twitter.finagle.http.path.{Path, Root, _}
 import com.twitter.finagle.{Service, http}
 import com.twitter.io.{Buf, Charsets}
 import com.twitter.util.{Future, NonFatal, Time}
-import org.json4s.jackson.JsonMethods
 import se.gigurra.dcs.remote.dcsclient.DcsClient
 import se.gigurra.heisenberg.MapData.SourceData
 import se.gigurra.serviceutils.filemon.FileMonitor
 import se.gigurra.serviceutils.json.JSON
 import se.gigurra.serviceutils.twitter.service.{Responses, ServiceErrorsWithoutAutoLogging, ServiceExceptionFilter}
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 import RestService._
+import com.fasterxml.jackson.databind.ObjectMapper
 import se.gigurra.dcs.remote.util.FastByteArrayOutputStream
 
 case class RestService(config: Configuration,
@@ -27,7 +27,7 @@ case class RestService(config: Configuration,
 
   @volatile var staticData: StaticData = StaticData.readFromFile()
   @volatile var staticDataByteMap: Map[String, Buf] = makeBufMap(staticData.source)
-  @volatile var allStaticDataAsBytes: Buf = Buf.ByteArray.Owned(JSON.writeMap(staticData).getBytes(Charsets.Utf8))
+  @volatile var allStaticDataAsBytes: Buf = Buf.ByteArray.Owned(JSON.writeMap(staticData).utf8)
   private val buffers = new ThreadLocal[FastByteArrayOutputStream] {
     override def initialValue(): FastByteArrayOutputStream = {
       FastByteArrayOutputStream()
@@ -64,13 +64,17 @@ case class RestService(config: Configuration,
   }
 
   object jsonBytes {
+
     val BEGIN_OBJECT = "{".utf8
-    val COMMA = ",".utf8
-    val AGE = "\"age\":".utf8
-    val COLON = ":".utf8
-    val TIMESTAMP = "\"timestamp\":".utf8
-    val DATA = "\"data\":".utf8
     val END_OBJECT = "}".utf8
+
+    val COMMA = ",".utf8
+    val COLON = ":".utf8
+    val QUOTE = "\"".utf8
+
+    val AGE = "\"age\"".utf8
+    val TIMESTAMP = "\"timestamp\"".utf8
+    val DATA = "\"data\"".utf8
   }
 
   private def handleGetAllFromCache(request: Request, env: String): Future[Response] = {
@@ -79,15 +83,19 @@ case class RestService(config: Configuration,
     val buffer = buffers.get()
     buffer.reset()
 
-    def writeKeyBytes(name: Array[Byte], prependComma: Boolean): Unit = {
+    def writeKeyBytes(name: Array[Byte], prependComma: Boolean, addQuotes: Boolean): Unit = {
       if (prependComma)
         buffer.write(COMMA)
+      if (addQuotes)
+        buffer.write(QUOTE)
       buffer.write(name)
+      if (addQuotes)
+        buffer.write(QUOTE)
       buffer.write(COLON)
     }
 
-    def writeKeyString(name: String, prependComma: Boolean): Unit = {
-      writeKeyBytes(name.utf8, prependComma)
+    def writeKeyString(name: String, prependComma: Boolean, addQuotes: Boolean): Unit = {
+      writeKeyBytes(name.utf8, prependComma, addQuotes)
     }
 
     def writeNumericValue(v: Number): Unit = {
@@ -98,13 +106,13 @@ case class RestService(config: Configuration,
     var iItem = 0
     buffer.write(BEGIN_OBJECT)
     itemsRequested.foreach { item =>
-      writeKeyString(item.id, prependComma = iItem > 0)
+      writeKeyString(item.id, prependComma = iItem > 0, addQuotes = true)
       buffer.write(BEGIN_OBJECT)
-      writeKeyBytes(AGE, prependComma = false)
+      writeKeyBytes(AGE, prependComma = false, addQuotes = false)
       writeNumericValue(item.age)
-      writeKeyBytes(TIMESTAMP, prependComma = true)
+      writeKeyBytes(TIMESTAMP, prependComma = true, addQuotes = false)
       writeNumericValue(item.timestamp)
-      writeKeyBytes(DATA, prependComma = true)
+      writeKeyBytes(DATA, prependComma = true, addQuotes = false)
       buffer.write(item.data)
       buffer.write(END_OBJECT)
       iItem += 1
@@ -148,12 +156,11 @@ case class RestService(config: Configuration,
   private def handlePut(request: Request,
                         env: String,
                         resource: String): Future[Response] = {
-    Try(JsonMethods.parse(request.contentString)) match {
-      case Success(_) =>
-        cache.put(env, resource, request.content)
-        Responses.Ok(s"Resource stored in cache")
-      case Failure(e) =>
-        Responses.BadRequest(s"Malformated json content string")
+    if (validJson(request.content)) {
+      cache.put(env, resource, request.content)
+      Responses.Ok(s"Resource stored in cache")
+    } else {
+      Responses.BadRequest(s"Malformated json content string")
     }
   }
 
@@ -172,7 +179,7 @@ case class RestService(config: Configuration,
   }
 
   private def makeBufMap(source: SourceData): Map[String, Buf] = {
-    source.mapValues(v => Buf.ByteArray.Owned(JSON.writeMap(v.asInstanceOf[Map[String, Any]]).getBytes(Charsets.Utf8)))
+    source.mapValues(v => Buf.ByteArray.Owned(JSON.writeMap(v.asInstanceOf[Map[String, Any]]).utf8))
   }
 
   private def makeStaticDataFileMonitor(): FileMonitor = {
@@ -181,7 +188,7 @@ case class RestService(config: Configuration,
         case StandardWatchEventKinds.ENTRY_CREATE | StandardWatchEventKinds.ENTRY_MODIFY => Try {
           logger.info(s"Updating from changes in static-data.json ..")
           staticData = StaticData.readFromFile()
-          allStaticDataAsBytes = Buf.ByteArray.Owned.apply(JSON.writeMap(staticData).getBytes(Charsets.Utf8))
+          allStaticDataAsBytes = Buf.ByteArray.Owned.apply(JSON.writeMap(staticData).utf8)
           staticDataByteMap = makeBufMap(staticData.source)
           logger.info(s"OK! (Updated successfully from changes in static-data.json)")
         }.recover {
@@ -198,6 +205,19 @@ case class RestService(config: Configuration,
   }
 
   val MAX_CACHE_AGE_KEY = "max_cached_age"
+
+  val mapper = new ObjectMapper
+
+  def validJson(buf: Buf): Boolean = {
+    try {
+      val parser = mapper.getFactory.createParser(Buf.ByteArray.Owned.extract(buf))
+      while (parser.nextToken() != null) {}
+      true
+    } catch {
+      case NonFatal(e) =>
+        false
+    }
+  }
 
 }
 
