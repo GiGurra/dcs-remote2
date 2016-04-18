@@ -13,7 +13,8 @@ case class ResourceCache(maxItemsPerCategory: Int) {
 
   private val categories = new concurrent.TrieMap[String, Cache[String, CacheItem]]
 
-  def put(category: String, id: String, data: Buf): Unit = {
+  def put(category: String, id: String, _data: Buf): Unit = {
+    val data = Buf.ByteArray.coerce(_data)
     categories.getOrElseUpdate(category, newCategory()).put(id, CacheItem(id, data, time))
   }
 
