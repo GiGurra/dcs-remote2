@@ -100,11 +100,11 @@ local function send(client, msg, requestId)
         local json = JSON.encode(msg)
         local allBytes = json .. "\n"
         local nAllBytes = string.len(allBytes)
-        local nSent = 0
+        local iStart = 1
 
-        while(nSent < nAllBytes) do
+        while(iStart < nAllBytes) do
 
-            local partialOnOk, err, partialOnFail = client:send(allBytes, nSent)
+            local partialOnOk, err, partialOnFail = client:send(allBytes, iStart)
 
             -- http://w3.impa.br/~diego/software/luasocket/old/luasocket-2.0-beta/tcp.html#send
             -- If successful, the method returns the number of bytes accepted by the transport layer.
@@ -113,9 +113,9 @@ local function send(client, msg, requestId)
             -- in case the connection was closed before the transmission was completed or the string
             -- 'timeout' in case there was a timeout during the operation.
             if partialOnOk then
-                nSent = nSent + partialOnOk
+                iStart = iStart + partialOnOk
             elseif err == 'timeout' then
-                nSent = nSent + partialOnFail
+                iStart = iStart + partialOnFail
             else
                 log_err("send: " .. err)
                 disconnect(client)
