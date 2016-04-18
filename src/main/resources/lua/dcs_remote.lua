@@ -71,8 +71,8 @@ end
 
 local function disconnect(client)
     if client then
-        client:close()
         dcsRemote_clients[client] = nil
+        client:close()
     end
 end
 
