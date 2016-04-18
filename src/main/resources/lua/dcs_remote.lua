@@ -106,12 +106,6 @@ local function send(client, msg, requestId)
 
             local iLastSentOk, err, iLastSentFail = client:send(allBytes, i + 1)
 
-            -- http://w3.impa.br/~diego/software/luasocket/old/luasocket-2.0-beta/tcp.html#send
-            -- If successful, the method returns the number of bytes accepted by the transport layer.
-            -- In case of error, the method returns nil, followed by an error message, followed by the
-            -- partial number of bytes accepted by the transport layer. The error message can be 'closed'
-            -- in case the connection was closed before the transmission was completed or the string
-            -- 'timeout' in case there was a timeout during the operation.
             if iLastSentOk then
                 i = iLastSentOk
             elseif err == 'timeout' then
