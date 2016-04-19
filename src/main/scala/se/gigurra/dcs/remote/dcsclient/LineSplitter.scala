@@ -6,12 +6,14 @@ import java.nio.channels.Channels
 import java.util
 
 import com.twitter.io.Charsets
+import se.gigurra.dcs.remote.util.FastByteArrayOutputStream
+import se.gigurra.serviceutils.twitter.logging.Logging
 
 import scala.collection.mutable.ArrayBuffer
 
-class LineSplitter {
+case class LineSplitter(nMaxBytes: Int = 1 * 1024 * 1024) extends Logging {
 
-  object buffer extends ByteArrayOutputStream() {
+  object buffer extends FastByteArrayOutputStream() {
     def data: Array[Byte] = buf
     def setSize(n: Int): Unit = count = n
     val channel = Channels.newChannel(this)
@@ -39,9 +41,14 @@ class LineSplitter {
     }
 
     // Shove back data
-    val nLeft = buffer.size() - offs
+    val nLeft = buffer.size - offs
     System.arraycopy(buffer.data, offs, buffer.data, 0, nLeft)
     buffer.setSize(nLeft)
+
+    if (buffer.size > nMaxBytes) {
+      logger.error(s"LineSplitter overflow - Force clearing. No splitting \\n from DCS?")
+      buffer.reset()
+    }
 
     // Clean up
     out map { line =>
