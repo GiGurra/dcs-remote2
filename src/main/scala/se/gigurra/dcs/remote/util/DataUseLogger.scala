@@ -17,7 +17,7 @@ case class DataUseLogger(outputFilePath: String, dtFlush: Duration, enabled: Boo
     DefaultTimer.twitter.schedule(dtFlush) {
       val delta = atomicDelta.getAndSet(0)
       val prevBytes = Try(Files.readAllLines(path, Charsets.Utf8).head.toLong).getOrElse(0L)
-      val newVal = (prevBytes + delta).toString.getBytes(Charsets.Utf8)
+      val newVal = ((prevBytes + delta).toString + "\n").getBytes(Charsets.Utf8)
       Files.write(path, newVal, StandardOpenOption.WRITE, StandardOpenOption.CREATE)
     }
   }
