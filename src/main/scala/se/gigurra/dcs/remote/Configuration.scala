@@ -59,7 +59,7 @@ object Configuration extends Schema[Configuration] with Logging {
   val show_tray_icon = required[Boolean]("show_tray_icon", default = true)
   val keybHook       = required[Boolean]("use_windows_keyboard_hook", default = true)
   val log_traffic    = required[Boolean]("log_traffic", default = false)
-  val log_categories = required[Boolean]("log_categories", default = true)
+  val log_categories = required[Boolean]("log_categories", default = false)
   val mappings       = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
   val relay          = optional[RelayConfig]("relay")
 
