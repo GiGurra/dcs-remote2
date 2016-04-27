@@ -7,7 +7,7 @@ import com.twitter.finagle.http._
 import com.twitter.finagle.http.path.{Path, Root, _}
 import com.twitter.finagle.{Service, http}
 import com.twitter.io.{Buf, Charsets}
-import com.twitter.util.{Future, NonFatal, Time}
+import com.twitter.util.{Duration, Future, NonFatal, Time}
 import se.gigurra.dcs.remote.dcsclient.DcsClient
 import se.gigurra.heisenberg.MapData.SourceData
 import se.gigurra.serviceutils.filemon.FileMonitor
@@ -18,7 +18,7 @@ import scala.util.Try
 import RestService._
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.databind.ObjectMapper
-import se.gigurra.dcs.remote.util.FastByteArrayOutputStream
+import se.gigurra.dcs.remote.util.{DataUseLogger, FastByteArrayOutputStream, SnapshotLogger}
 
 case class RestService(config: Configuration,
                        cache: ResourceCache,
@@ -29,8 +29,16 @@ case class RestService(config: Configuration,
   @volatile var staticData: StaticDataSnapshot = StaticDataSnapshot(StaticData.readFromFile())
   private val buffers = ThreadLocalBuffers
   private val fileMonitor = makeStaticDataFileMonitor()
+  private val inputTraffic = DataUseLogger("input-traffic-amount.txt", Duration.fromSeconds(5), enabled = config.logTraffic)
+  private val outputTraffic = DataUseLogger("output-traffic-amount.txt", Duration.fromSeconds(5), enabled = config.logTraffic)
+  private val categoriesLogger = SnapshotLogger("categories.txt", Duration.fromSeconds(5), enabled = config.logCategories, { () => cache.categoryNames.mkString("", "\n", "\n") })
+  private val ESTIM_REQ_OVERHEAD = 100
 
-  override def apply(request: Request) = ServiceExceptionFilter {
+
+  override def apply(request: Request): Future[Response] = ServiceExceptionFilter {
+
+    inputTraffic.log(request.length + ESTIM_REQ_OVERHEAD)
+
     request.method -> Path(request.path) match {
       case Method.Get     -> Root / "static-data"            => handleGetAllStaticData(request)
       case Method.Get     -> Root / "static-data" / resource => handleGetStaticData(request, resource)
@@ -41,6 +49,8 @@ case class RestService(config: Configuration,
       case Method.Put     -> Root / env / resource           => handlePut(request, env, resource)
       case _                                                 => NotFound("No such route")
     }
+  }.onSuccess { response =>
+    outputTraffic.log(response.length + ESTIM_REQ_OVERHEAD)
   }
 
   private def getMaxCacheAge(request: Request, default: Double): Double = {

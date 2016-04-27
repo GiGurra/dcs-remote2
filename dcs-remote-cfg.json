@@ -3,6 +3,8 @@
   "connect_to_dcs": true,
   "show_tray_icon": true,
   "use_windows_keyboard_hook": true,
+  "log_traffic": false,
+  "log_categories": false,
   "mappings": [
     {
       "name": "export",

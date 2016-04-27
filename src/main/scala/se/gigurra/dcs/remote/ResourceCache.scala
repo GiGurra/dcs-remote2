@@ -32,6 +32,10 @@ case class ResourceCache(maxItemsPerCategory: Int) {
     }.getOrElse(Nil)
   }
 
+  def categoryNames: Seq[String] = {
+    categories.keys.toSeq
+  }
+
   private def time: Double = Instant.now.toEpochMilli.toDouble / 1000.0
   private def newCategory() = CacheBuilder.newBuilder().maximumSize(maxItemsPerCategory).build[String, CacheItem]()
 }

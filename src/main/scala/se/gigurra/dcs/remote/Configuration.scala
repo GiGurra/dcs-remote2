@@ -47,6 +47,8 @@ case class Configuration(source: SourceData = Map.empty)
   val connect_to_dcs = parse(schema.connect_to_dcs)
   val show_tray_icon = parse(schema.show_tray_icon)
   val keybHook       = parse(schema.keybHook)
+  val logTraffic     = parse(schema.log_traffic)
+  val logCategories  = parse(schema.log_categories)
   val mappings       = parse(schema.mappings)
   val relay          = parse(schema.relay)
 }
@@ -56,6 +58,8 @@ object Configuration extends Schema[Configuration] with Logging {
   val connect_to_dcs = required[Boolean]("connect_to_dcs", default = true)
   val show_tray_icon = required[Boolean]("show_tray_icon", default = true)
   val keybHook       = required[Boolean]("use_windows_keyboard_hook", default = true)
+  val log_traffic    = required[Boolean]("log_traffic", default = false)
+  val log_categories = required[Boolean]("log_categories", default = true)
   val mappings       = required[Seq[LuaEnvironmentMap]]("mappings", default = Seq(LuaEnvironmentMap()))
   val relay          = optional[RelayConfig]("relay")
 
